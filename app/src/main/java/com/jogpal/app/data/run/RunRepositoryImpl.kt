@@ -76,6 +76,9 @@ class RunRepositoryImpl(
 
                 // Perform update
                 transaction.update(docRef, "status", newStatus.name)
+                if (newStatus == RunStatus.ACTIVE && plan.actualStartTime == null) {
+                    transaction.update(docRef, "actualStartTime", System.currentTimeMillis())
+                }
                 transaction.update(docRef, "updatedAt", System.currentTimeMillis())
                 null
             }.await()
@@ -84,6 +87,34 @@ class RunRepositoryImpl(
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Transaction failed for updateRunStatus", e)
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun completeRun(
+        runId: String,
+        actualDistanceKm: Double,
+        actualDurationSeconds: Long,
+        calories: Int,
+        actualPolyline: String?
+    ): Result<Unit> {
+        val currentUid = auth.currentUser?.uid ?: return Result.failure(Exception("Not authenticated"))
+        
+        return try {
+            firestore.collection("runPlans").document(runId).update(
+                mapOf(
+                    "status" to RunStatus.COMPLETED.name,
+                    "actualDistanceKm" to actualDistanceKm,
+                    "actualDurationSeconds" to actualDurationSeconds,
+                    "calories" to calories,
+                    "actualPolyline" to actualPolyline,
+                    "completedAt" to System.currentTimeMillis(),
+                    "updatedAt" to System.currentTimeMillis()
+                )
+            ).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to complete run", e)
             Result.failure(e)
         }
     }
@@ -104,6 +135,16 @@ class RunRepositoryImpl(
             .whereEqualTo("partnerUid", currentUid)
             .whereEqualTo("status", RunStatus.PENDING.name)
             .orderBy("createdAt", Query.Direction.DESCENDING)
+            .snapshots()
+            .map { it.toObjects(RunPlan::class.java) }
+    }
+
+    override fun getRunHistory(): Flow<List<RunPlan>> {
+        val currentUid = auth.currentUser?.uid ?: return kotlinx.coroutines.flow.flowOf(emptyList())
+        return firestore.collection("runPlans")
+            .whereArrayContains("participantUids", currentUid)
+            .whereEqualTo("status", RunStatus.COMPLETED.name)
+            .orderBy("completedAt", Query.Direction.DESCENDING)
             .snapshots()
             .map { it.toObjects(RunPlan::class.java) }
     }

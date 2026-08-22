@@ -57,12 +57,37 @@ class ActiveRunViewModelFactory(
     private val profileRepository: ProfileRepository = ProfileRepositoryImpl(),
     private val locationRepository: LocationRepository = LocationRepositoryImpl(context),
     private val liveRunRepository: LiveRunRepository = LiveRunRepositoryImpl(),
-    private val runRepository: RunRepository = RunRepositoryImpl()
+    private val runRepository: RunRepository = RunRepositoryImpl(),
+    private val routeRepository: RouteRepository = RouteRepositoryImpl()
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(ActiveRunViewModel::class.java)) {
-            return ActiveRunViewModel(authRepository, profileRepository, locationRepository, liveRunRepository, runRepository) as T
+            return ActiveRunViewModel(authRepository, profileRepository, locationRepository, liveRunRepository, runRepository, routeRepository) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}
+
+class RunHistoryViewModelFactory(
+    private val runRepository: RunRepository = RunRepositoryImpl()
+) : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(RunHistoryViewModel::class.java)) {
+            return RunHistoryViewModel(runRepository) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}
+
+class RunHistoryDetailViewModelFactory(
+    private val runRepository: RunRepository = RunRepositoryImpl()
+) : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(RunHistoryDetailViewModel::class.java)) {
+            return RunHistoryDetailViewModel(runRepository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

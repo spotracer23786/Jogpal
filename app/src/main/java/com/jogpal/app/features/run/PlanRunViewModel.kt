@@ -19,6 +19,7 @@ data class PlanRunUiState(
     val partnerProfile: UserProfile? = null,
     val userLocation: com.jogpal.app.domain.user.UserLocation? = null,
     val routeResult: RouteResult? = null,
+    val routeAlternatives: List<RouteResult> = emptyList(),
     val searchResults: List<SearchResult> = emptyList(),
     val isSearching: Boolean = false,
     val isSuccess: Boolean = false,
@@ -81,25 +82,37 @@ class PlanRunViewModel(
         selectDestination(result.location.lat, result.location.lng, result.name)
     }
 
+    fun selectAlternative(route: RouteResult) {
+        _uiState.value = _uiState.value.copy(routeResult = route)
+    }
+
     fun selectDestination(lat: Double, lng: Double, name: String? = null) {
         val start = _uiState.value.userLocation ?: return
         
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             routeRepository.calculateRoute(
                 startLat = start.latitude,
                 startLng = start.longitude,
                 endLat = lat,
-                endLng = lng
+                endLng = lng,
+                alternatives = true
             ).fold(
-                onSuccess = { result ->
-                    val finalResult = if (name != null) result.copy(destinationName = name) else result
-                    _uiState.value = _uiState.value.copy(isLoading = false, routeResult = finalResult, error = null)
+                onSuccess = { results ->
+                    val primary = if (name != null) results.firstOrNull()?.copy(destinationName = name) else results.firstOrNull()
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false, 
+                        routeResult = primary,
+                        routeAlternatives = results,
+                        error = null
+                    )
                 },
                 onFailure = {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false, 
-                        error = it.message ?: "Route calculation failed"
+                        error = it.message ?: "Route calculation failed",
+                        routeResult = null,
+                        routeAlternatives = emptyList()
                     )
                 }
             )

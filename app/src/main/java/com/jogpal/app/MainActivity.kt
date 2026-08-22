@@ -14,6 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -138,7 +139,27 @@ class MainActivity : ComponentActivity() {
                             },
                             onViewRun = { runId ->
                                 navController.navigate("run_details/$runId")
+                            },
+                            onViewHistory = {
+                                navController.navigate("run_history")
                             }
+                        )
+                    }
+
+                    composable("run_history") {
+                        RunHistoryScreen(
+                            onNavigateBack = { navController.popBackStack() },
+                            onRunClick = { runId ->
+                                navController.navigate("run_history_detail/$runId")
+                            }
+                        )
+                    }
+
+                    composable("run_history_detail/{runId}") { backStackEntry ->
+                        val runId = backStackEntry.arguments?.getString("runId") ?: ""
+                        RunHistoryDetailScreen(
+                            runId = runId,
+                            onNavigateBack = { navController.popBackStack() }
                         )
                     }
 
@@ -272,6 +293,7 @@ fun HomeScreen(
     onFindPartner: () -> Unit,
     onPlanRun: (String) -> Unit,
     onViewRun: (String) -> Unit,
+    onViewHistory: () -> Unit,
     profileViewModel: ProfileViewModel = viewModel(factory = ProfileViewModelFactory()),
     matchingViewModel: MatchingViewModel = viewModel(factory = MatchingViewModelFactory())
 ) {
@@ -321,8 +343,13 @@ fun HomeScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 JogpalLogo()
-                IconButton(onClick = onLogout) {
-                    Text("Logout", color = Color.Gray, fontSize = 12.sp)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onViewHistory) {
+                        Icon(Icons.Default.History, contentDescription = "History", tint = MaterialTheme.colorScheme.primary)
+                    }
+                    IconButton(onClick = onLogout) {
+                        Text("Logout", color = Color.Gray, fontSize = 12.sp)
+                    }
                 }
             }
 

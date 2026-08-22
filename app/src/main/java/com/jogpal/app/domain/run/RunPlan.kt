@@ -22,6 +22,14 @@ data class RunPlan(
     val encodedPolyline: String? = null,
     val estimatedDurationMinutes: Int? = null,
     
+    // Completion Details
+    val actualDistanceKm: Double? = null,
+    val actualDurationSeconds: Long? = null,
+    val calories: Int? = null,
+    val actualStartTime: Long? = null,
+    val completedAt: Long? = null,
+    val actualPolyline: String? = null,
+    
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 )

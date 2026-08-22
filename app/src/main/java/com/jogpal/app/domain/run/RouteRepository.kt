@@ -5,6 +5,7 @@ interface RouteRepository {
         startLat: Double,
         startLng: Double,
         endLat: Double,
-        endLng: Double
-    ): Result<RouteResult>
+        endLng: Double,
+        alternatives: Boolean = false
+    ): Result<List<RouteResult>>
 }

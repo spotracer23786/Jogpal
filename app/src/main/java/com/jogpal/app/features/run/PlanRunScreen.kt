@@ -211,6 +211,7 @@ fun PlanRunScreen(
                     lifecycleOwner.lifecycle.addObserver(observer)
                     onDispose {
                         lifecycleOwner.lifecycle.removeObserver(observer)
+                        mapView.onDestroy()
                     }
                 }
 
@@ -268,8 +269,21 @@ fun PlanRunScreen(
                                 .snippet("Your location"))
                         }
 
-                        // Add Destination and Route (FINISH)
-                        routeResult?.let { route ->
+                        // Add Alternatives (Unselected first so they are behind)
+                        uiState.routeAlternatives.forEach { alt ->
+                            if (alt.encodedPolyline != uiState.routeResult?.encodedPolyline) {
+                                val points = PolylineUtils.decodePolyline(alt.encodedPolyline).toLatLngList()
+                                if (points.isNotEmpty()) {
+                                    map.addPolyline(PolylineOptions()
+                                        .addAll(points)
+                                        .color(android.graphics.Color.LTGRAY)
+                                        .width(4f))
+                                }
+                            }
+                        }
+
+                        // Add Destination and Selected Route (FINISH)
+                        uiState.routeResult?.let { route ->
                             val dest = LatLng(route.endLat, route.endLng)
                             map.addMarker(MarkerOptions()
                                 .position(dest)
@@ -280,16 +294,8 @@ fun PlanRunScreen(
                             if (points.isNotEmpty()) {
                                 map.addPolyline(PolylineOptions()
                                     .addAll(points)
-                                    .color(android.graphics.Color.parseColor("#007AFF")) // System Blue
+                                    .color(android.graphics.Color.parseColor("#007AFF")) // Selected Blue
                                     .width(6f))
-
-                                // Fit bounds
-                                val builder = LatLngBounds.Builder()
-                                    .include(LatLng(route.startLat, route.startLng))
-                                    .include(dest)
-                                points.forEach { builder.include(it) }
-
-                                // No auto-animate inside update block to avoid snapping
                             }
                         }
                     }
@@ -339,6 +345,37 @@ fun PlanRunScreen(
             Column(modifier = Modifier.padding(horizontal = 24.dp)) {
                 if (uiState.isLoading) {
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
+
+                // Route Alternatives Selection
+                if (uiState.routeAlternatives.size > 1) {
+                    SectionHeader("CHOOSE ROUTE")
+                    androidx.compose.foundation.lazy.LazyRow(
+                        contentPadding = PaddingValues(bottom = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(uiState.routeAlternatives) { route ->
+                            val isSelected = route.encodedPolyline == uiState.routeResult?.encodedPolyline
+                            Surface(
+                                onClick = { viewModel.selectAlternative(route) },
+                                shape = RoundedCornerShape(16.dp),
+                                color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surface,
+                                border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
+                                modifier = Modifier.width(140.dp)
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Text(
+                                        text = route.destinationName,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text("${route.distanceKm} km", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                                    Text("${route.durationMinutes} min", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                                }
+                            }
+                        }
+                    }
                 }
 
                 uiState.routeResult?.let { route ->
