@@ -171,16 +171,21 @@ fun PlanRunScreen(
                 var mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
                 val mapView = remember { MapView(context) }
 
-                // Standard OSM Raster Style JSON
+                val isDark = androidx.compose.foundation.isSystemInDarkTheme()
+                val tileUrl = if (isDark) {
+                    "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"
+                } else {
+                    "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
+                }
                 val osmStyleJson = """
                 {
                   "version": 8,
                   "sources": {
                     "osm": {
                       "type": "raster",
-                      "tiles": ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+                      "tiles": ["$tileUrl"],
                       "tileSize": 256,
-                      "attribution": "© OpenStreetMap contributors"
+                      "attribution": "© CartoDB / © OpenStreetMap"
                     }
                   },
                   "layers": [
