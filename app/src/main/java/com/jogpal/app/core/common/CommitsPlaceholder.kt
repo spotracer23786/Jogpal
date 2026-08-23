@@ -2,5 +2,5 @@
 package com.jogpal.app.core.common
 
 object CommitsPlaceholder {
-    val count = 12
+    val count = 13
 }
