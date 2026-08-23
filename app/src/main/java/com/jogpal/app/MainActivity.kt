@@ -52,6 +52,8 @@ import com.jogpal.app.features.matching.MatchingViewModelFactory
 import com.jogpal.app.features.run.*
 import com.jogpal.app.ui.theme.JogpalTheme
 
+import com.jogpal.app.features.chat.ChatScreen
+
 class MainActivity : ComponentActivity() {
     private val authRepository = AuthRepositoryImpl(userRepository = UserRepositoryImpl())
 
@@ -142,7 +144,18 @@ class MainActivity : ComponentActivity() {
                             },
                             onViewHistory = {
                                 navController.navigate("run_history")
+                            },
+                            onChat = { partnerUid ->
+                                navController.navigate("chat/$partnerUid")
                             }
+                        )
+                    }
+
+                    composable("chat/{partnerUid}") { backStackEntry ->
+                        val partnerUid = backStackEntry.arguments?.getString("partnerUid") ?: ""
+                        ChatScreen(
+                            partnerUid = partnerUid,
+                            onNavigateBack = { navController.popBackStack() }
                         )
                     }
 
@@ -181,6 +194,9 @@ class MainActivity : ComponentActivity() {
                             onNavigateBack = { navController.popBackStack() },
                             onPlanRun = { partnerUid ->
                                 navController.navigate("plan_run/$partnerUid")
+                            },
+                            onChat = { partnerUid ->
+                                navController.navigate("chat/$partnerUid")
                             }
                         )
                     }
@@ -222,7 +238,7 @@ class MainActivity : ComponentActivity() {
                                 navController.currentDestination?.route != "signup" &&
                                 navController.currentDestination?.route != "splash") {
                                 navController.navigate("onboarding") {
-                                    popUpTo(0) { inclusive = true }
+                                    popUpTo(navController.graph.startDestinationId) { inclusive = true }
                                 }
                             }
                         }
@@ -230,11 +246,11 @@ class MainActivity : ComponentActivity() {
                             if (!state.isProfileLoading) {
                                 if (state.profileCompleted) {
                                     navController.navigate("home") {
-                                        popUpTo(0) { inclusive = true }
+                                        popUpTo(navController.graph.startDestinationId) { inclusive = true }
                                     }
                                 } else {
                                     navController.navigate("profile_setup/${state.uid}") {
-                                        popUpTo(0) { inclusive = true }
+                                        popUpTo(navController.graph.startDestinationId) { inclusive = true }
                                     }
                                 }
                             }
@@ -294,6 +310,7 @@ fun HomeScreen(
     onPlanRun: (String) -> Unit,
     onViewRun: (String) -> Unit,
     onViewHistory: () -> Unit,
+    onChat: (String) -> Unit,
     profileViewModel: ProfileViewModel = viewModel(factory = ProfileViewModelFactory()),
     matchingViewModel: MatchingViewModel = viewModel(factory = MatchingViewModelFactory())
 ) {
@@ -411,7 +428,11 @@ fun HomeScreen(
                     if (matches.isNotEmpty()) {
                         SectionHeader("My Running Partners")
                         matches.forEach { displayModel ->
-                            MatchCard(displayModel, onPlanRun = { onPlanRun(displayModel.partnerProfile?.uid ?: "") })
+                            MatchCard(
+                                displayModel = displayModel,
+                                onPlanRun = { onPlanRun(displayModel.partnerProfile?.uid ?: "") },
+                                onChat = { onChat(displayModel.partnerProfile?.uid ?: "") }
+                            )
                         }
                     }
 
@@ -508,7 +529,11 @@ fun RequestCard(request: RunRequest, onAccept: () -> Unit, onDecline: () -> Unit
 }
 
 @Composable
-fun MatchCard(displayModel: com.jogpal.app.features.matching.MatchDisplayModel, onPlanRun: () -> Unit) {
+fun MatchCard(
+    displayModel: com.jogpal.app.features.matching.MatchDisplayModel,
+    onPlanRun: () -> Unit,
+    onChat: () -> Unit
+) {
     val partner = displayModel.partnerProfile
     Surface(
         modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
@@ -537,11 +562,19 @@ fun MatchCard(displayModel: com.jogpal.app.features.matching.MatchDisplayModel, 
                     color = Color.Gray
                 )
             }
-            TextButton(
-                onClick = onPlanRun,
-                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
-            ) {
-                Text("Plan Run", fontWeight = FontWeight.Bold)
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                TextButton(
+                    onClick = onChat,
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Text("Chat", fontWeight = FontWeight.Bold)
+                }
+                TextButton(
+                    onClick = onPlanRun,
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Text("Plan Run", fontWeight = FontWeight.Bold)
+                }
             }
         }
     }
