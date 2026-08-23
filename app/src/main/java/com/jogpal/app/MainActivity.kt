@@ -147,6 +147,9 @@ class MainActivity : ComponentActivity() {
                             },
                             onChat = { partnerUid ->
                                 navController.navigate("chat/$partnerUid")
+                            },
+                            onStartSoloRun = { goalType, value ->
+                                navController.navigate("solo_active_run/$goalType/$value")
                             }
                         )
                     }
@@ -225,6 +228,16 @@ class MainActivity : ComponentActivity() {
                         val runId = backStackEntry.arguments?.getString("runId") ?: ""
                         ActiveRunScreen(
                             runId = runId,
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable("solo_active_run/{goalType}/{goalValue}") { backStackEntry ->
+                        val goalType = backStackEntry.arguments?.getString("goalType") ?: "FREE"
+                        val goalValue = backStackEntry.arguments?.getString("goalValue")?.toDoubleOrNull() ?: 0.0
+                        com.jogpal.app.features.run.SoloActiveRunScreen(
+                            goalTypeName = goalType,
+                            goalValue = goalValue,
                             onNavigateBack = { navController.popBackStack() }
                         )
                     }
@@ -311,6 +324,7 @@ fun HomeScreen(
     onViewRun: (String) -> Unit,
     onViewHistory: () -> Unit,
     onChat: (String) -> Unit,
+    onStartSoloRun: (String, Double) -> Unit,
     profileViewModel: ProfileViewModel = viewModel(factory = ProfileViewModelFactory()),
     matchingViewModel: MatchingViewModel = viewModel(factory = MatchingViewModelFactory())
 ) {
@@ -320,6 +334,8 @@ fun HomeScreen(
     val receivedRequests by matchingViewModel.receivedRequests.collectAsState()
     val matches by matchingViewModel.matches.collectAsState()
     val matchingError by matchingViewModel.error.collectAsState()
+
+    var showSoloSetup by remember { mutableStateOf(false) }
 
     // Real-time run data
     val runRepository = com.jogpal.app.data.run.RunRepositoryImpl()
@@ -339,6 +355,16 @@ fun HomeScreen(
         if (uid.isNotEmpty()) {
             profileViewModel.loadProfile(uid)
         }
+    }
+
+    if (showSoloSetup) {
+        com.jogpal.app.features.run.SoloSetupDialog(
+            onDismiss = { showSoloSetup = false },
+            onStartRun = { goalType, value ->
+                showSoloSetup = false
+                onStartSoloRun(goalType.name, value)
+            }
+        )
     }
 
     Scaffold(
@@ -395,10 +421,26 @@ fun HomeScreen(
 
                     Spacer(modifier = Modifier.height(32.dp))
 
-                    JogpalButton(
-                        text = "Find a Running Partner",
-                        onClick = onFindPartner
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            JogpalButton(
+                                text = "Find Partner",
+                                onClick = onFindPartner
+                            )
+                        }
+                        Box(modifier = Modifier.weight(1f)) {
+                            OutlinedButton(
+                                onClick = { showSoloSetup = true },
+                                modifier = Modifier.fillMaxWidth().height(56.dp),
+                                shape = RoundedCornerShape(16.dp)
+                            ) {
+                                Text("Solo Run", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
 
                     // 1. Run Invitations
                     if (invitations.isNotEmpty()) {
