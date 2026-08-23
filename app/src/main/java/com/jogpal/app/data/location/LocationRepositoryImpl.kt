@@ -54,7 +54,7 @@ class LocationRepositoryImpl(
             val location = fusedLocationClient.getCurrentLocation(
                 Priority.PRIORITY_HIGH_ACCURACY,
                 null
-            ).await()
+            ).await() ?: fusedLocationClient.lastLocation.await()
             
             if (location != null) {
                 Result.success(

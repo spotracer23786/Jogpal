@@ -195,6 +195,7 @@ fun SoloSetupScreen(
     var startLocation by remember { mutableStateOf<LatLng?>(null) }
     var destinationLocation by remember { mutableStateOf<LatLng?>(null) }
     var userCentered by remember { mutableStateOf(false) }
+    var currentLoadedStyleUrl by remember { mutableStateOf("") }
 
     val actualPace = when (paceMode) {
         "EASY" -> 7.0
@@ -294,19 +295,29 @@ fun SoloSetupScreen(
             factory = { mapView },
             modifier = Modifier.fillMaxSize(),
             update = { view ->
-                view.getMapAsync { map ->
-                    mapLibreMap = map
-                    map.setStyle(Style.Builder().fromJson(mapStyleUrl)) {
-                        startLocation?.let {
-                            map.moveCamera(CameraUpdateFactory.newLatLngZoom(it, 14.5))
+                if (mapLibreMap == null) {
+                    view.getMapAsync { map ->
+                        mapLibreMap = map
+                        map.setStyle(Style.Builder().fromJson(mapStyleUrl)) {
+                            currentLoadedStyleUrl = mapStyleUrl
+                            startLocation?.let {
+                                map.moveCamera(CameraUpdateFactory.newLatLngZoom(it, 14.5))
+                            }
+                        }
+
+                        // Tapping on map sets custom destination
+                        map.addOnMapClickListener { point ->
+                            destinationLocation = point
+                            routeShape = "CUSTOM"
+                            true
                         }
                     }
-
-                    // Tapping on map sets custom destination
-                    map.addOnMapClickListener { point ->
-                        destinationLocation = point
-                        routeShape = "CUSTOM"
-                        true
+                } else {
+                    val map = mapLibreMap!!
+                    if (currentLoadedStyleUrl != mapStyleUrl) {
+                        map.setStyle(Style.Builder().fromJson(mapStyleUrl)) {
+                            currentLoadedStyleUrl = mapStyleUrl
+                        }
                     }
                 }
 
