@@ -28,6 +28,7 @@ fun RunnerProfileScreen(
     targetUid: String,
     onNavigateBack: () -> Unit,
     onPlanRun: (String) -> Unit,
+    onChat: (String) -> Unit,
     viewModel: RunnerProfileViewModel = viewModel(factory = RunnerProfileViewModelFactory()),
     modifier: Modifier = Modifier
 ) {
@@ -129,17 +130,35 @@ fun RunnerProfileScreen(
                     }
                     val isEnabled = !uiState.requestSent && (request == null || isMatched)
                     
-                    JogpalButton(
-                        text = buttonText,
-                        onClick = { 
-                            if (isMatched) {
-                                onPlanRun(profile.uid)
-                            } else {
-                                viewModel.sendRunRequest()
+                    if (isMatched) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = { onChat(profile.uid) },
+                                modifier = Modifier.weight(1f).height(56.dp),
+                                shape = RoundedCornerShape(16.dp)
+                            ) {
+                                Text("Chat", fontWeight = FontWeight.Bold)
                             }
-                        },
-                        enabled = isEnabled
-                    )
+                            Button(
+                                onClick = { onPlanRun(profile.uid) },
+                                modifier = Modifier.weight(1f).height(56.dp),
+                                shape = RoundedCornerShape(16.dp)
+                            ) {
+                                Text("Plan a Run", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    } else {
+                        JogpalButton(
+                            text = buttonText,
+                            onClick = { 
+                                viewModel.sendRunRequest()
+                            },
+                            enabled = isEnabled
+                        )
+                    }
                     
                     Spacer(modifier = Modifier.height(24.dp))
                 }
