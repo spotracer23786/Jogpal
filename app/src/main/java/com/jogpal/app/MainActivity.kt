@@ -148,8 +148,8 @@ class MainActivity : ComponentActivity() {
                             onChat = { partnerUid ->
                                 navController.navigate("chat/$partnerUid")
                             },
-                            onStartSoloRun = { goalType, value ->
-                                navController.navigate("solo_active_run/$goalType/$value")
+                            onStartSoloRun = {
+                                navController.navigate("solo_setup")
                             }
                         )
                     }
@@ -232,12 +232,44 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    composable("solo_active_run/{goalType}/{goalValue}") { backStackEntry ->
+                    composable("solo_setup") {
+                        com.jogpal.app.features.run.SoloSetupScreen(
+                            onNavigateBack = { navController.popBackStack() },
+                            onStartSoloRun = { goalType, goalValue, routeShape, paceMode, targetPace, weather, theme, ghostEnabled, startLat, startLng, endLat, endLng ->
+                                navController.navigate("solo_active_run/$goalType/$goalValue/$routeShape/$paceMode/$targetPace/$weather/$theme/$ghostEnabled/$startLat/$startLng/$endLat/$endLng")
+                            }
+                        )
+                    }
+
+                    composable(
+                        "solo_active_run/{goalType}/{goalValue}/{routeShape}/{paceMode}/{targetPace}/{weather}/{theme}/{ghostEnabled}/{startLat}/{startLng}/{endLat}/{endLng}"
+                    ) { backStackEntry ->
                         val goalType = backStackEntry.arguments?.getString("goalType") ?: "FREE"
                         val goalValue = backStackEntry.arguments?.getString("goalValue")?.toDoubleOrNull() ?: 0.0
+                        val routeShape = backStackEntry.arguments?.getString("routeShape") ?: "LOOP"
+                        val paceMode = backStackEntry.arguments?.getString("paceMode") ?: "MODERATE"
+                        val targetPace = backStackEntry.arguments?.getString("targetPace")?.toDoubleOrNull() ?: 5.5
+                        val weather = backStackEntry.arguments?.getString("weather") ?: "SUNNY"
+                        val theme = backStackEntry.arguments?.getString("theme") ?: "LIGHT"
+                        val ghostEnabled = backStackEntry.arguments?.getString("ghostEnabled")?.toBoolean() ?: false
+                        val startLat = backStackEntry.arguments?.getString("startLat")?.toDoubleOrNull()
+                        val startLng = backStackEntry.arguments?.getString("startLng")?.toDoubleOrNull()
+                        val endLat = backStackEntry.arguments?.getString("endLat")?.toDoubleOrNull()
+                        val endLng = backStackEntry.arguments?.getString("endLng")?.toDoubleOrNull()
+
                         com.jogpal.app.features.run.SoloActiveRunScreen(
                             goalTypeName = goalType,
                             goalValue = goalValue,
+                            routeShapeName = routeShape,
+                            paceModeName = paceMode,
+                            targetPace = targetPace,
+                            weatherName = weather,
+                            themeName = theme,
+                            ghostEnabled = ghostEnabled,
+                            customStartLat = startLat,
+                            customStartLng = startLng,
+                            customEndLat = endLat,
+                            customEndLng = endLng,
                             onNavigateBack = { navController.popBackStack() }
                         )
                     }
@@ -324,7 +356,7 @@ fun HomeScreen(
     onViewRun: (String) -> Unit,
     onViewHistory: () -> Unit,
     onChat: (String) -> Unit,
-    onStartSoloRun: (String, Double) -> Unit,
+    onStartSoloRun: () -> Unit,
     profileViewModel: ProfileViewModel = viewModel(factory = ProfileViewModelFactory()),
     matchingViewModel: MatchingViewModel = viewModel(factory = MatchingViewModelFactory())
 ) {
@@ -334,8 +366,6 @@ fun HomeScreen(
     val receivedRequests by matchingViewModel.receivedRequests.collectAsState()
     val matches by matchingViewModel.matches.collectAsState()
     val matchingError by matchingViewModel.error.collectAsState()
-
-    var showSoloSetup by remember { mutableStateOf(false) }
 
     // Real-time run data
     val runRepository = com.jogpal.app.data.run.RunRepositoryImpl()
@@ -355,16 +385,6 @@ fun HomeScreen(
         if (uid.isNotEmpty()) {
             profileViewModel.loadProfile(uid)
         }
-    }
-
-    if (showSoloSetup) {
-        com.jogpal.app.features.run.SoloSetupDialog(
-            onDismiss = { showSoloSetup = false },
-            onStartRun = { goalType, value ->
-                showSoloSetup = false
-                onStartSoloRun(goalType.name, value)
-            }
-        )
     }
 
     Scaffold(
@@ -433,7 +453,7 @@ fun HomeScreen(
                         }
                         Box(modifier = Modifier.weight(1f)) {
                             OutlinedButton(
-                                onClick = { showSoloSetup = true },
+                                onClick = onStartSoloRun,
                                 modifier = Modifier.fillMaxWidth().height(56.dp),
                                 shape = RoundedCornerShape(16.dp)
                             ) {
