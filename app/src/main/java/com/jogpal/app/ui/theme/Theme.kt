@@ -14,44 +14,40 @@ import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
     primary = JogpalPrimary,
-    secondary = JogpalTertiary,
-    tertiary = JogpalPrimary,
+    secondary = JogpalSecondary,
+    tertiary = JogpalTertiary,
     background = JogpalBackgroundDark,
     surface = JogpalSurfaceDark,
     onPrimary = Color.White,
-    onSecondary = Color.Black,
-    onTertiary = Color.White,
+    onSecondary = Color.White,
+    onTertiary = Color.Black,
     onBackground = JogpalOnBackgroundDark,
-    onSurface = JogpalOnBackgroundDark
+    onSurface = JogpalOnSurfaceDark
 )
 
 private val LightColorScheme = lightColorScheme(
     primary = JogpalPrimary,
     secondary = JogpalSecondary,
-    tertiary = JogpalPrimary,
+    tertiary = JogpalTertiary,
     background = JogpalBackgroundLight,
     surface = JogpalSurfaceLight,
     onPrimary = Color.White,
     onSecondary = Color.White,
     onTertiary = Color.White,
     onBackground = JogpalOnBackgroundLight,
-    onSurface = JogpalOnBackgroundLight
+    onSurface = JogpalOnSurfaceLight,
+    surfaceVariant = JogpalPillBgLight,
+    outline = JogpalCardBorderLight
 )
 
 
 @Composable
 fun JogpalTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    darkTheme: Boolean = false, // Default to clean white/green design
+    dynamicColor: Boolean = false, // Prefer our custom health tracking theme tokens
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
     }

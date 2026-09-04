@@ -1,20 +1,26 @@
 package com.jogpal.app.features.chat
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -23,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.jogpal.app.domain.chat.ChatMessage
+import com.jogpal.app.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,28 +53,50 @@ fun ChatScreen(
     }
 
     Scaffold(
+        containerColor = JogpalBackgroundLight,
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
-                        Text(
-                            text = uiState.partnerProfile?.name ?: "Chat Partner",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp
-                        )
-                        Text(
-                            text = "Jogging Partner",
-                            color = MaterialTheme.colorScheme.primary,
-                            fontSize = 12.sp
-                        )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(CircleShape)
+                                .background(JogpalPillBgLight)
+                                .border(1.dp, JogpalPrimary.copy(alpha = 0.3f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Favorite,
+                                contentDescription = null,
+                                tint = JogpalPrimary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(10.dp))
+
+                        Column {
+                            Text(
+                                text = uiState.partnerProfile?.name ?: "VTH Health Assistant",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 17.sp,
+                                color = JogpalOnBackgroundLight
+                            )
+                            Text(
+                                text = "Active Running Assistant",
+                                color = JogpalMutedTextLight,
+                                fontSize = 12.sp
+                            )
+                        }
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = JogpalOnBackgroundLight)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = JogpalBackgroundLight)
             )
         }
     ) { innerPadding ->
@@ -75,11 +104,11 @@ fun ChatScreen(
             modifier = modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(MaterialTheme.colorScheme.background)
+                .background(JogpalBackgroundLight)
         ) {
             if (uiState.isLoading && uiState.messages.isEmpty()) {
                 Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                    CircularProgressIndicator(color = JogpalPrimary)
                 }
             } else {
                 LazyColumn(
@@ -89,7 +118,7 @@ fun ChatScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp),
                     contentPadding = PaddingValues(vertical = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(uiState.messages) { message ->
                         val isMe = message.senderUid == currentUid
@@ -98,23 +127,40 @@ fun ChatScreen(
                 }
             }
 
-            // INPUT BAR
-            Surface(
-                tonalElevation = 4.dp,
-                modifier = Modifier.fillMaxWidth()
+            // INPUT BAR inspired by Ref UI 1 (Ask me anything...)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 16.dp)
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(12.dp),
+                        .shadow(12.dp, RoundedCornerShape(28.dp), spotColor = Color(0x1F000000))
+                        .clip(RoundedCornerShape(28.dp))
+                        .background(Color.White)
+                        .border(1.dp, JogpalCardBorderLight, RoundedCornerShape(28.dp))
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    OutlinedTextField(
+                    TextField(
                         value = textMessage,
                         onValueChange = { textMessage = it },
                         modifier = Modifier.weight(1f),
-                        placeholder = { Text("Type a message...") },
-                        shape = RoundedCornerShape(24.dp),
+                        placeholder = {
+                            Text(
+                                "Ask me anything ...",
+                                color = JogpalMutedTextLight,
+                                fontSize = 14.sp
+                            )
+                        },
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            disabledContainerColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent
+                        ),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                         keyboardActions = KeyboardActions(onSend = {
@@ -124,23 +170,27 @@ fun ChatScreen(
                             }
                         })
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    IconButton(
-                        onClick = {
-                            if (textMessage.isNotBlank()) {
-                                viewModel.sendMessage(textMessage)
-                                textMessage = ""
-                            }
-                        },
-                        colors = IconButtonDefaults.iconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = Color.Black
-                        ),
-                        modifier = Modifier.size(48.dp)
+
+                    // Elevated Send Button (Ref UI 1 ↑ Icon)
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .shadow(4.dp, CircleShape)
+                            .clip(CircleShape)
+                            .background(Color.White)
+                            .border(1.dp, JogpalCardBorderLight, CircleShape)
+                            .clickable {
+                                if (textMessage.isNotBlank()) {
+                                    viewModel.sendMessage(textMessage)
+                                    textMessage = ""
+                                }
+                            },
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Send,
+                            imageVector = Icons.Default.ArrowUpward,
                             contentDescription = "Send",
+                            tint = JogpalOnBackgroundLight,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -152,26 +202,57 @@ fun ChatScreen(
 
 @Composable
 fun ChatBubble(message: ChatMessage, isMe: Boolean) {
-    Box(
+    Row(
         modifier = Modifier.fillMaxWidth(),
-        contentAlignment = if (isMe) Alignment.CenterEnd else Alignment.CenterStart
+        horizontalArrangement = if (isMe) Arrangement.End else Arrangement.Start,
+        verticalAlignment = Alignment.Top
     ) {
-        Surface(
-            color = if (isMe) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-            contentColor = if (isMe) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant,
-            shape = RoundedCornerShape(
-                topStart = 16.dp,
-                topEnd = 16.dp,
-                bottomStart = if (isMe) 16.dp else 4.dp,
-                bottomEnd = if (isMe) 4.dp else 16.dp
-            ),
-            modifier = Modifier.widthIn(max = 280.dp)
+        if (!isMe) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(JogpalPillBgLight)
+                    .border(1.dp, JogpalPrimary.copy(alpha = 0.2f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Favorite,
+                    contentDescription = null,
+                    tint = JogpalPrimary,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(10.dp))
+        }
+
+        Box(
+            modifier = Modifier
+                .widthIn(max = 280.dp)
+                .shadow(4.dp, RoundedCornerShape(20.dp), spotColor = Color(0x0F000000))
+                .clip(
+                    RoundedCornerShape(
+                        topStart = 20.dp,
+                        topEnd = 20.dp,
+                        bottomStart = if (isMe) 20.dp else 4.dp,
+                        bottomEnd = if (isMe) 4.dp else 20.dp
+                    )
+                )
+                .background(if (isMe) JogpalPillBgLight else Color.White)
+                .border(
+                    1.dp,
+                    if (isMe) JogpalPrimary.copy(alpha = 0.2f) else JogpalCardBorderLight,
+                    RoundedCornerShape(20.dp)
+                )
+                .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             Text(
                 text = message.content,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                fontSize = 15.sp
+                fontSize = 14.sp,
+                color = JogpalOnBackgroundLight,
+                lineHeight = 20.sp
             )
         }
     }
 }
+

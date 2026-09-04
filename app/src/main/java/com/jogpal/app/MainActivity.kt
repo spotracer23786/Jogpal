@@ -18,6 +18,8 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,11 +29,20 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.graphics.Brush
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.jogpal.app.core.designsystem.components.JogpalButton
-import com.jogpal.app.core.designsystem.components.JogpalLogo
+import androidx.navigation.compose.currentBackStackEntryAsState
+import com.jogpal.app.core.designsystem.components.*
+import com.jogpal.app.ui.theme.*
+import androidx.compose.material.icons.filled.NotificationsNone
+import androidx.compose.material.icons.filled.DirectionsRun
+import androidx.compose.material.icons.filled.Psychology
+import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.foundation.border
 import com.jogpal.app.data.auth.AuthRepositoryImpl
 import com.jogpal.app.data.profile.ProfileRepositoryImpl
 import com.jogpal.app.data.user.UserRepositoryImpl
@@ -52,9 +63,8 @@ import com.jogpal.app.features.matching.RunnerProfileScreen
 import com.jogpal.app.features.matching.MatchingViewModel
 import com.jogpal.app.features.matching.MatchingViewModelFactory
 import com.jogpal.app.features.run.*
-import com.jogpal.app.ui.theme.JogpalTheme
-
 import com.jogpal.app.features.chat.ChatScreen
+
 
 class MainActivity : ComponentActivity() {
     private val authRepository = AuthRepositoryImpl(userRepository = UserRepositoryImpl())
@@ -70,13 +80,35 @@ class MainActivity : ComponentActivity() {
                 val mainViewModel: MainViewModel = viewModel(factory = MainViewModelFactory())
                 val mainUiState by mainViewModel.uiState.collectAsState()
 
-                NavHost(
-                    navController = navController,
-                    startDestination = "splash"
-                ) {
-                    composable("splash") {
-                        SplashScreen(mainUiState, navController)
+                val navBackStackEntry by navController.currentBackStackEntryAsState()
+                val currentRoute = navBackStackEntry?.destination?.route ?: ""
+                val mainTabRoutes = listOf("home", "nearby_runners", "ghost_select", "run_history", "passport")
+                val showBottomBar = currentRoute in mainTabRoutes
+
+                Scaffold(
+                    bottomBar = {
+                        if (showBottomBar) {
+                            JogpalBottomNavBar(
+                                currentRoute = currentRoute,
+                                onNavigate = { route ->
+                                    navController.navigate(route) {
+                                        popUpTo("home") { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                }
+                            )
+                        }
                     }
+                ) { innerPadding ->
+                    NavHost(
+                        navController = navController,
+                        startDestination = "splash",
+                        modifier = Modifier.padding(innerPadding)
+                    ) {
+                        composable("splash") {
+                            SplashScreen(mainUiState, navController)
+                        }
 
                     composable("onboarding") {
                         OnboardingScreen(
@@ -439,6 +471,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+}
 
 @Composable
 fun SplashScreen(state: MainUiState, navController: androidx.navigation.NavController) {
@@ -508,6 +541,7 @@ fun HomeScreen(
     val invitations by runRepository.getIncomingInvitations().collectAsState(initial = emptyList())
 
     val snackbarHostState = remember { SnackbarHostState() }
+    var selectedFilter by remember { mutableStateOf("All") }
 
     LaunchedEffect(matchingError) {
         matchingError?.let {
@@ -524,226 +558,354 @@ fun HomeScreen(
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = JogpalBackgroundLight
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
-                .padding(horizontal = 24.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Header bar inspired by Ref UI 1 & 2
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                JogpalLogo()
+                Column {
+                    val profileName = (profileState as? ProfileUiState.Success)?.profile?.name ?: "Runner"
+                    Text(
+                        text = "Good Morning,",
+                        fontSize = 13.sp,
+                        color = JogpalMutedTextLight,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = profileName,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = JogpalOnBackgroundLight
+                    )
+                }
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onOpenPassport) {
-                        Text("🛂", fontSize = 20.sp)
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(CircleShape)
+                            .background(Color.White)
+                            .border(1.dp, JogpalCardBorderLight, CircleShape)
+                            .clickable { onOpenSafety() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.NotificationsNone,
+                            contentDescription = "Notifications",
+                            tint = JogpalOnBackgroundLight,
+                            modifier = Modifier.size(22.dp)
+                        )
                     }
-                    IconButton(onClick = onViewHistory) {
-                        Icon(Icons.Default.History, contentDescription = "History", tint = MaterialTheme.colorScheme.primary)
-                    }
-                    IconButton(onClick = onLogout) {
-                        Text("Logout", color = Color.Gray, fontSize = 12.sp)
+
+                    Spacer(modifier = Modifier.width(10.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(CircleShape)
+                            .background(JogpalPrimary)
+                            .clickable { onOpenPassport() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = (profileState as? ProfileUiState.Success)?.profile?.name?.take(1)?.uppercase() ?: "J",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp
+                        )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            when (val state = profileState) {
-                is ProfileUiState.Loading -> {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+            // Top Status stats row (Ref UI 1)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text("Member Since", fontSize = 11.sp, color = JogpalMutedTextLight)
+                    Text("Aug 2025", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = JogpalPrimary)
                 }
-                is ProfileUiState.Success -> {
-                    val profile = state.profile
-                    Text(
-                        text = "Hello, ${profile?.name ?: "Runner"}!",
-                        style = MaterialTheme.typography.displaySmall,
-                        fontWeight = FontWeight.Black,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    Text(
-                        text = "Ready for your next run?",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-                    )
+                Column {
+                    Text("Runs Conducted", fontSize = 11.sp, color = JogpalMutedTextLight)
+                    Text("94", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = JogpalPrimary)
+                }
+                Column {
+                    Text("Next Goal", fontSize = 11.sp, color = JogpalMutedTextLight)
+                    Text("Feb 2026", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = JogpalPrimary)
+                }
+            }
 
-                    Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Box(modifier = Modifier.weight(1f)) {
-                            JogpalButton(
-                                text = "Find Partner",
-                                onClick = onFindPartner
+            // Horizontally Scrollable Filter Chips (Ref UI 1 & 3)
+            JogpalFilterChips(
+                options = listOf("All", "Overview", "Ghost Mode", "Upcoming", "Partners"),
+                selectedOption = selectedFilter,
+                onOptionSelected = { selectedFilter = it }
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+                // Overview Bar Chart Card (Ref UI 1)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(Color.White)
+                        .border(1.dp, JogpalCardBorderLight, RoundedCornerShape(24.dp))
+                        .padding(20.dp)
+                ) {
+                    Column {
+                        Text("Overview", fontSize = 14.sp, color = JogpalMutedTextLight)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            Text(
+                                "40/47",
+                                fontSize = 32.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = JogpalOnBackgroundLight
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                "Results",
+                                fontSize = 16.sp,
+                                color = JogpalMutedTextLight,
+                                modifier = Modifier.padding(bottom = 4.dp)
                             )
                         }
-                        Box(modifier = Modifier.weight(1f)) {
-                            OutlinedButton(
-                                onClick = onStartSoloRun,
-                                modifier = Modifier.fillMaxWidth().height(56.dp),
-                                shape = RoundedCornerShape(16.dp)
-                            ) {
-                                Text("Solo Run", fontWeight = FontWeight.Bold)
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        // Visual Progress Bar Indicators (Ref UI 1)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            repeat(7) {
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight()
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(JogpalOptimalGreen.copy(alpha = 0.4f + (it * 0.1f)))
+                                )
+                            }
+                            repeat(3) {
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight()
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(JogpalSubOptimalPink.copy(alpha = 0.6f + (it * 0.2f)))
+                                )
                             }
                         }
-                    }
 
-                    // Ghost Mode Entry Card
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(20.dp))
-                            .clickable { onStartGhostMode() },
-                        shape = RoundedCornerShape(20.dp),
-                        color = Color(0xFF141A24),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF32FF7E).copy(alpha = 0.4f))
-                    ) {
+                        Spacer(modifier = Modifier.height(10.dp))
+
                         Row(
-                            modifier = Modifier.padding(20.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .background(Color(0xFF32FF7E).copy(alpha = 0.15f), CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("👻", fontSize = 24.sp)
-                            }
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Column(modifier = Modifier.weight(1f)) {
+                            Text("Optimal 20", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = JogpalOptimalGreen)
+                            Text("Sub Optimal 7", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = JogpalSubOptimalPink)
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Line Chart Performance Component (Ref UI 1)
+                JogpalMetricChart(
+                    title = "Pace Trend",
+                    currentValue = "5.2",
+                    unit = "min/km",
+                    badgeText = "Optimal ✓",
+                    badgeColor = JogpalOptimalGreen
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 2x2 Feature Action Grid (Ref UI 1)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    JogpalStatCard(
+                        title = "Biomarkers\nOverview",
+                        value = "4.2",
+                        subtitle = "Target achieved",
+                        icon = Icons.Default.DirectionsRun,
+                        onClick = onFindPartner,
+                        modifier = Modifier.weight(1f)
+                    )
+                    JogpalStatCard(
+                        title = "Test\nHistory",
+                        value = "94",
+                        subtitle = "Completed runs",
+                        icon = Icons.Default.History,
+                        onClick = onViewHistory,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    JogpalStatCard(
+                        title = "AI Running\nAssistant",
+                        value = "Active",
+                        badgeText = "AI",
+                        badgeColor = JogpalPrimary,
+                        icon = Icons.Default.Psychology,
+                        onClick = { onChat(uid) },
+                        modifier = Modifier.weight(1f)
+                    )
+                    JogpalStatCard(
+                        title = "Insights &\nSafety",
+                        value = "Protected",
+                        badgeText = "SOS",
+                        badgeColor = JogpalSecondary,
+                        icon = Icons.Default.Shield,
+                        onClick = onOpenSafety,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Futuristic Ghost Mode Card (Ref UI 2)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color(0xFF0F1A17),
+                                    Color(0xFF162823)
+                                )
+                            )
+                        )
+                        .border(1.dp, JogpalTertiary.copy(alpha = 0.4f), RoundedCornerShape(24.dp))
+                        .clickable { onStartGhostMode() }
+                        .padding(20.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(50.dp)
+                                .clip(CircleShape)
+                                .background(JogpalTertiary.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("👻", fontSize = 24.sp)
+                        }
+
+                        Spacer(modifier = Modifier.width(16.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
                                     "Ghost Mode",
+                                    fontSize = 18.sp,
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 17.sp,
                                     color = Color.White
                                 )
-                                Text(
-                                    "“Race against your past self.”",
-                                    fontSize = 13.sp,
-                                    color = Color.White.copy(alpha = 0.7f)
-                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(JogpalTertiary)
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text("LIVE", fontSize = 9.sp, fontWeight = FontWeight.Black, color = Color.Black)
+                                }
                             }
-                            Icon(
-                                Icons.Default.ChevronRight,
-                                contentDescription = null,
-                                tint = Color(0xFF32FF7E)
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                "Race against your past self.",
+                                fontSize = 13.sp,
+                                color = Color.White.copy(alpha = 0.7f)
                             )
                         }
-                    }
 
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Safety & SOS Hub Card
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onOpenSafety() },
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF18181B)),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFDC2626).copy(alpha = 0.5f))
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(20.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .background(Color(0xFFDC2626).copy(alpha = 0.15f), CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("🚨", fontSize = 24.sp)
-                            }
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    "Safety Circle & SOS",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 17.sp,
-                                    color = Color.White
-                                )
-                                Text(
-                                    "Trusted contacts, live alert & test mode",
-                                    fontSize = 13.sp,
-                                    color = Color.White.copy(alpha = 0.7f)
-                                )
-                            }
-                            Icon(
-                                Icons.Default.ChevronRight,
-                                contentDescription = null,
-                                tint = Color(0xFFEF4444)
-                            )
-                        }
-                    }
-
-                    // 1. Run Invitations
-                    if (invitations.isNotEmpty()) {
-                        SectionHeader("Run Invitations")
-                        invitations.forEach { plan ->
-                            RunInvitationCard(plan, onView = { onViewRun(plan.id) })
-                        }
-                    }
-
-                    // 2. Incoming Match Requests
-                    if (receivedRequests.isNotEmpty()) {
-                        SectionHeader("Pending Invites")
-                        receivedRequests.forEach { request ->
-                            RequestCard(request, onAccept = { matchingViewModel.acceptRequest(request.id) }, onDecline = { matchingViewModel.declineRequest(request.id) })
-                        }
-                    }
-
-                    // 3. Upcoming Runs
-                    if (upcomingRuns.isNotEmpty()) {
-                        SectionHeader("Upcoming Runs")
-                        upcomingRuns.forEach { run ->
-                            UpcomingRunCard(run, onView = { onViewRun(run.id) })
-                        }
-                    }
-
-                    // 4. Running Partners
-                    if (matches.isNotEmpty()) {
-                        SectionHeader("My Running Partners")
-                        matches.forEach { displayModel ->
-                            MatchCard(
-                                displayModel = displayModel,
-                                onPlanRun = { onPlanRun(displayModel.partnerProfile?.uid ?: "") },
-                                onChat = { onChat(displayModel.partnerProfile?.uid ?: "") }
-                            )
-                        }
-                    }
-
-                    SectionHeader("Your Running Profile")
-
-                    profile?.let {
-                        ProfileDetailItem("Goal", it.runningGoal ?: "-")
-                        ProfileDetailItem("Experience", it.experienceLevel ?: "-")
-                        ProfileDetailItem("Distance", it.preferredDistance ?: "-")
-                        ProfileDetailItem("Pace", it.preferredPace ?: "-")
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = JogpalTertiary
+                        )
                     }
                 }
-                is ProfileUiState.Error -> {
-                    Text("Error: ${state.message}", color = MaterialTheme.colorScheme.error)
-                    Button(onClick = { profileViewModel.loadProfile(uid) }) {
-                        Text("Retry")
+
+                // 1. Run Invitations
+                if (invitations.isNotEmpty()) {
+                    SectionHeader("Run Invitations")
+                    invitations.forEach { plan ->
+                        RunInvitationCard(plan, onView = { onViewRun(plan.id) })
                     }
                 }
-                else -> {}
+
+                // 2. Incoming Match Requests
+                if (receivedRequests.isNotEmpty()) {
+                    SectionHeader("Pending Invites")
+                    receivedRequests.forEach { request ->
+                        RequestCard(
+                            request = request,
+                            onAccept = { matchingViewModel.acceptRequest(request.id) },
+                            onDecline = { matchingViewModel.declineRequest(request.id) }
+                        )
+                    }
+                }
+
+                // 3. Upcoming Runs
+                if (upcomingRuns.isNotEmpty()) {
+                    SectionHeader("Upcoming Runs")
+                    upcomingRuns.forEach { run ->
+                        UpcomingRunCard(run, onView = { onViewRun(run.id) })
+                    }
+                }
+
+                // 4. Running Partners
+                if (matches.isNotEmpty()) {
+                    SectionHeader("My Running Partners")
+                    matches.forEach { displayModel ->
+                        MatchCard(
+                            displayModel = displayModel,
+                            onPlanRun = { onPlanRun(displayModel.partnerProfile?.uid ?: "") },
+                            onChat = { onChat(displayModel.partnerProfile?.uid ?: "") }
+                        )
+                    }
+                }
+
+                // Safe Mobile Bottom Spacing for Floating Navigation Dock
+                Spacer(modifier = Modifier.height(100.dp))
             }
-            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
