@@ -633,7 +633,8 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Top Status stats row (Ref UI 1)
+            // Top Status stats row (Ref UI 1 layout with real data)
+            val profileObj = (profileState as? ProfileUiState.Success)?.profile
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -641,16 +642,16 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column {
-                    Text("Member Since", fontSize = 11.sp, color = JogpalMutedTextLight)
-                    Text("Aug 2025", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = JogpalPrimary)
+                    Text("Target Goal", fontSize = 11.sp, color = JogpalMutedTextLight)
+                    Text(profileObj?.runningGoal ?: "Fitness", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = JogpalPrimary)
                 }
                 Column {
-                    Text("Runs Conducted", fontSize = 11.sp, color = JogpalMutedTextLight)
-                    Text("94", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = JogpalPrimary)
+                    Text("Active Partners", fontSize = 11.sp, color = JogpalMutedTextLight)
+                    Text("${matches.size}", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = JogpalPrimary)
                 }
                 Column {
-                    Text("Next Goal", fontSize = 11.sp, color = JogpalMutedTextLight)
-                    Text("Feb 2026", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = JogpalPrimary)
+                    Text("Scheduled Runs", fontSize = 11.sp, color = JogpalMutedTextLight)
+                    Text("${upcomingRuns.size}", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = JogpalPrimary)
                 }
             }
 
@@ -666,7 +667,7 @@ fun HomeScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             Column(modifier = Modifier.padding(horizontal = 20.dp)) {
-                // Overview Bar Chart Card (Ref UI 1)
+                // Overview Card with Dynamic Real Data (Ref UI 1)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -676,18 +677,18 @@ fun HomeScreen(
                         .padding(20.dp)
                 ) {
                     Column {
-                        Text("Overview", fontSize = 14.sp, color = JogpalMutedTextLight)
+                        Text("Weekly Activity Overview", fontSize = 14.sp, color = JogpalMutedTextLight)
                         Spacer(modifier = Modifier.height(4.dp))
                         Row(verticalAlignment = Alignment.Bottom) {
                             Text(
-                                "40/47",
+                                "${upcomingRuns.size + matches.size}",
                                 fontSize = 32.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = JogpalOnBackgroundLight
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                "Results",
+                                "Total Activities",
                                 fontSize = 16.sp,
                                 color = JogpalMutedTextLight,
                                 modifier = Modifier.padding(bottom = 4.dp)
@@ -696,29 +697,24 @@ fun HomeScreen(
 
                         Spacer(modifier = Modifier.height(14.dp))
 
-                        // Visual Progress Bar Indicators (Ref UI 1)
+                        // Real Progress Bar Segment Indicators
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(16.dp),
+                                .height(14.dp),
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            repeat(7) {
+                            val activeSegs = (upcomingRuns.size + 1).coerceAtMost(10)
+                            repeat(10) { idx ->
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
                                         .fillMaxHeight()
                                         .clip(RoundedCornerShape(4.dp))
-                                        .background(JogpalOptimalGreen.copy(alpha = 0.4f + (it * 0.1f)))
-                                )
-                            }
-                            repeat(3) {
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxHeight()
-                                        .clip(RoundedCornerShape(4.dp))
-                                        .background(JogpalSubOptimalPink.copy(alpha = 0.6f + (it * 0.2f)))
+                                        .background(
+                                            if (idx < activeSegs) JogpalPrimary.copy(alpha = 0.5f + (idx * 0.05f))
+                                            else JogpalPillBgLight
+                                        )
                                 )
                             }
                         }
@@ -729,20 +725,20 @@ fun HomeScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("Optimal 20", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = JogpalOptimalGreen)
-                            Text("Sub Optimal 7", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = JogpalSubOptimalPink)
+                            Text("${upcomingRuns.size} Upcoming Runs", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = JogpalOptimalGreen)
+                            Text("${matches.size} Partners Connected", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = JogpalPrimary)
                         }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Line Chart Performance Component (Ref UI 1)
+                // Real Metric Performance Component (Without fake hardcoded demo data)
                 JogpalMetricChart(
-                    title = "Pace Trend",
-                    currentValue = "5.2",
-                    unit = "min/km",
-                    badgeText = "Optimal ✓",
+                    title = "Live Pace Analytics",
+                    currentValue = profileObj?.preferredPace ?: "--",
+                    unit = "Pace Target",
+                    badgeText = if (profileObj?.preferredPace != null) "Active ✓" else "Set Goal",
                     badgeColor = JogpalOptimalGreen
                 )
 

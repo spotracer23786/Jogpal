@@ -1,40 +1,34 @@
 package com.jogpal.app.features.auth
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.jogpal.app.core.designsystem.components.JogpalButton
+import com.jogpal.app.core.designsystem.components.JogpalLogo
+import com.jogpal.app.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,115 +52,183 @@ fun LoginScreen(
     }
 
     Scaffold(
+        containerColor = JogpalBackgroundLight,
         topBar = {
             TopAppBar(
                 title = { },
                 navigationIcon = {
-                    TextButton(onClick = onNavigateBack) {
-                        Text("Back", color = MaterialTheme.colorScheme.primary)
+                    Box(
+                        modifier = Modifier
+                            .padding(start = 12.dp)
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(Color.White)
+                            .border(1.dp, JogpalCardBorderLight, CircleShape)
+                            .clickable { onNavigateBack() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = JogpalOnBackgroundLight,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = JogpalBackgroundLight)
             )
         }
     ) { innerPadding ->
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(JogpalBackgroundLight)
+                .padding(innerPadding)
+        ) {
             Column(
                 modifier = modifier
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background)
-                    .padding(innerPadding)
-                    .padding(horizontal = 24.dp)
+                    .padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Spacer(modifier = Modifier.height(16.dp))
+
+                JogpalLogo()
+
+                Spacer(modifier = Modifier.height(24.dp))
                 
                 Text(
-                    text = "Welcome back",
-                    style = MaterialTheme.typography.displayLarge,
-                    color = MaterialTheme.colorScheme.onBackground
+                    text = "Welcome Back",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = JogpalOnBackgroundLight
                 )
                 
+                Spacer(modifier = Modifier.height(4.dp))
+
                 Text(
-                    text = "Log in to your account",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                    text = "Log in to join your running partner network",
+                    fontSize = 14.sp,
+                    color = JogpalMutedTextLight
                 )
                 
-                Spacer(modifier = Modifier.height(48.dp))
-                
-                OutlinedTextField(
-                    value = email,
-                    onValueChange = { 
-                        email = it
-                        localError = null
-                        viewModel.resetState()
-                    },
-                    label = { Text("Email") },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                    singleLine = true,
-                    enabled = uiState !is AuthUiState.Loading
-                )
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = { 
-                        password = it
-                        localError = null
-                        viewModel.resetState()
-                    },
-                    label = { Text("Password") },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    singleLine = true,
-                    enabled = uiState !is AuthUiState.Loading
-                )
-                
-                val currentError = localError ?: (uiState as? AuthUiState.Error)?.message
-                if (currentError != null) {
-                    Text(
-                        text = currentError,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(top = 8.dp, start = 4.dp)
-                    )
-                }
-                
-                Spacer(modifier = Modifier.height(32.dp))
-                
-                JogpalButton(
-                    text = "Log In",
-                    onClick = {
-                        if (email.isBlank() || password.isBlank()) {
-                            localError = "Please fill in all fields"
-                        } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                            localError = "Please enter a valid email address"
-                        } else {
-                            viewModel.login(email, password)
+                Spacer(modifier = Modifier.height(36.dp))
+
+                // Elevated Glass Login Card
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(12.dp, RoundedCornerShape(28.dp), spotColor = Color(0x1F000000))
+                        .clip(RoundedCornerShape(28.dp))
+                        .background(Color.White)
+                        .border(1.dp, JogpalCardBorderLight, RoundedCornerShape(28.dp))
+                        .padding(24.dp)
+                ) {
+                    Column {
+                        OutlinedTextField(
+                            value = email,
+                            onValueChange = { 
+                                email = it
+                                localError = null
+                                viewModel.resetState()
+                            },
+                            label = { Text("Email Address") },
+                            leadingIcon = {
+                                Icon(Icons.Default.Email, contentDescription = null, tint = JogpalPrimary)
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(18.dp),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
+                            singleLine = true,
+                            enabled = uiState !is AuthUiState.Loading,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = JogpalPrimary,
+                                unfocusedBorderColor = JogpalCardBorderLight
+                            )
+                        )
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        OutlinedTextField(
+                            value = password,
+                            onValueChange = { 
+                                password = it
+                                localError = null
+                                viewModel.resetState()
+                            },
+                            label = { Text("Password") },
+                            leadingIcon = {
+                                Icon(Icons.Default.Lock, contentDescription = null, tint = JogpalPrimary)
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(18.dp),
+                            visualTransformation = PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                            singleLine = true,
+                            enabled = uiState !is AuthUiState.Loading,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = JogpalPrimary,
+                                unfocusedBorderColor = JogpalCardBorderLight
+                            )
+                        )
+                        
+                        val currentError = localError ?: (uiState as? AuthUiState.Error)?.message
+                        if (currentError != null) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = currentError,
+                                color = MaterialTheme.colorScheme.error,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
                         }
-                    },
-                    enabled = uiState !is AuthUiState.Loading
-                )
+                        
+                        Spacer(modifier = Modifier.height(28.dp))
+                        
+                        // Futuristic Emerald CTA Button
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp)
+                                .shadow(8.dp, RoundedCornerShape(26.dp), spotColor = JogpalPrimary)
+                                .clip(RoundedCornerShape(26.dp))
+                                .background(
+                                    Brush.horizontalGradient(
+                                        colors = listOf(JogpalPrimary, JogpalSecondary)
+                                    )
+                                )
+                                .clickable(enabled = uiState !is AuthUiState.Loading) {
+                                    if (email.isBlank() || password.isBlank()) {
+                                        localError = "Please fill in all fields"
+                                    } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                                        localError = "Please enter a valid email address"
+                                    } else {
+                                        viewModel.login(email, password)
+                                    }
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Log In",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
                 
                 Spacer(modifier = Modifier.weight(1f))
                 
                 TextButton(
                     onClick = onNavigateToSignUp,
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
                     enabled = uiState !is AuthUiState.Loading
                 ) {
                     Text(
                         text = "Don't have an account? Create one",
-                        style = MaterialTheme.typography.labelLarge,
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = JogpalPrimary
                     )
                 }
                 
@@ -178,9 +240,10 @@ fun LoginScreen(
                     modifier = Modifier
                         .align(Alignment.Center)
                         .size(48.dp),
-                    color = MaterialTheme.colorScheme.primary
+                    color = JogpalPrimary
                 )
             }
         }
     }
 }
+
