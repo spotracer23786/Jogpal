@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import org.maplibre.android.MapLibre
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -19,6 +20,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -150,6 +152,136 @@ class MainActivity : ComponentActivity() {
                             },
                             onStartSoloRun = {
                                 navController.navigate("solo_setup")
+                            },
+                            onStartGhostMode = {
+                                navController.navigate("ghost_select")
+                            },
+                            onOpenPassport = {
+                                navController.navigate("passport")
+                            },
+                            onOpenSafety = {
+                                navController.navigate("safety_settings")
+                            }
+                        )
+                    }
+
+                    composable("safety_settings") {
+                        com.jogpal.app.features.sos.SafetySettingsScreen(
+                            onNavigateBack = { navController.popBackStack() },
+                            onNavigateToHistory = { navController.navigate("sos_history") },
+                            onStartTestMode = { navController.navigate("sos_test_mode") }
+                        )
+                    }
+
+                    composable("sos_history") {
+                        val repo = remember { com.jogpal.app.features.sos.SOSRepository.getInstance() }
+                        val events by repo.sosHistory.collectAsState()
+                        com.jogpal.app.features.sos.components.SOSHistoryScreen(
+                            events = events,
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable("sos_test_mode") {
+                        var sosStatus by remember { mutableStateOf(com.jogpal.app.features.sos.SOSStatus.COUNTDOWN) }
+                        var showPreview by remember { mutableStateOf(false) }
+                        val mockLocation = remember { com.jogpal.app.features.sos.LiveLocationData() }
+
+                        if (sosStatus == com.jogpal.app.features.sos.SOSStatus.COUNTDOWN) {
+                            com.jogpal.app.features.sos.components.SOSCountdownOverlay(
+                                isTestMode = true,
+                                onCountdownFinished = {
+                                    sosStatus = com.jogpal.app.features.sos.SOSStatus.ACTIVE
+                                    com.jogpal.app.features.sos.SOSRepository.getInstance().logSOSEvent(
+                                        com.jogpal.app.features.sos.SOSEvent(
+                                            title = "SOS Test Mode",
+                                            dateString = "Just Now",
+                                            type = com.jogpal.app.features.sos.SOSEventType.TEST_MODE,
+                                            contactsNotifiedCount = 0
+                                        )
+                                    )
+                                },
+                                onCancel = { navController.popBackStack() }
+                            )
+                        }
+
+                        if (sosStatus == com.jogpal.app.features.sos.SOSStatus.ACTIVE) {
+                            com.jogpal.app.features.sos.components.SOSActiveStateScreen(
+                                locationData = mockLocation,
+                                trustedContactsCount = 0,
+                                isTestMode = true,
+                                onDeactivate = { navController.popBackStack() },
+                                onViewPreview = { showPreview = true }
+                            )
+                        }
+
+                        if (showPreview) {
+                            com.jogpal.app.features.sos.components.SOSNotificationPreviewDialog(
+                                locationData = mockLocation,
+                                onDismiss = { showPreview = false }
+                            )
+                        }
+                    }
+
+                    composable("passport") {
+                        com.jogpal.app.features.passport.PassportScreen(
+                            onNavigateBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable("ghost_select") {
+                        com.jogpal.app.features.ghost.GhostRunSelectScreen(
+                            onNavigateBack = { navController.popBackStack() },
+                            onSelectGhostRun = { ghostId ->
+                                navController.navigate("ghost_setup/$ghostId")
+                            }
+                        )
+                    }
+
+                    composable("ghost_setup/{ghostId}") { backStackEntry ->
+                        val ghostId = backStackEntry.arguments?.getString("ghostId") ?: ""
+                        com.jogpal.app.features.ghost.GhostRunSetupScreen(
+                            ghostId = ghostId,
+                            onNavigateBack = { navController.popBackStack() },
+                            onStartGhostRun = { id ->
+                                navController.navigate("ghost_active/$id")
+                            }
+                        )
+                    }
+
+                    composable("ghost_active/{ghostId}") { backStackEntry ->
+                        val ghostId = backStackEntry.arguments?.getString("ghostId") ?: ""
+                        com.jogpal.app.features.ghost.GhostActiveRunScreen(
+                            ghostId = ghostId,
+                            onNavigateBack = { navController.popBackStack() },
+                            onFinishRun = { id, dur, dist, isWinner ->
+                                navController.navigate("ghost_finish/$id/$dur/$dist/$isWinner") {
+                                    popUpTo("home")
+                                }
+                            }
+                        )
+                    }
+
+                    composable("ghost_finish/{ghostId}/{userDuration}/{userDistance}/{isWinner}") { backStackEntry ->
+                        val ghostId = backStackEntry.arguments?.getString("ghostId") ?: ""
+                        val userDuration = backStackEntry.arguments?.getString("userDuration")?.toLongOrNull() ?: 0L
+                        val userDistance = backStackEntry.arguments?.getString("userDistance")?.toDoubleOrNull() ?: 0.0
+                        val isWinner = backStackEntry.arguments?.getString("isWinner")?.toBoolean() ?: false
+
+                        com.jogpal.app.features.ghost.GhostRunFinishScreen(
+                            ghostId = ghostId,
+                            userDurationSeconds = userDuration,
+                            userDistanceKm = userDistance,
+                            isWinner = isWinner,
+                            onRunAgain = {
+                                navController.navigate("ghost_active/$ghostId") {
+                                    popUpTo("home")
+                                }
+                            },
+                            onDone = {
+                                navController.navigate("home") {
+                                    popUpTo("home") { inclusive = true }
+                                }
                             }
                         )
                     }
@@ -357,6 +489,9 @@ fun HomeScreen(
     onViewHistory: () -> Unit,
     onChat: (String) -> Unit,
     onStartSoloRun: () -> Unit,
+    onStartGhostMode: () -> Unit = {},
+    onOpenPassport: () -> Unit = {},
+    onOpenSafety: () -> Unit = {},
     profileViewModel: ProfileViewModel = viewModel(factory = ProfileViewModelFactory()),
     matchingViewModel: MatchingViewModel = viewModel(factory = MatchingViewModelFactory())
 ) {
@@ -407,6 +542,9 @@ fun HomeScreen(
             ) {
                 JogpalLogo()
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onOpenPassport) {
+                        Text("🛂", fontSize = 20.sp)
+                    }
                     IconButton(onClick = onViewHistory) {
                         Icon(Icons.Default.History, contentDescription = "History", tint = MaterialTheme.colorScheme.primary)
                     }
@@ -459,6 +597,96 @@ fun HomeScreen(
                             ) {
                                 Text("Solo Run", fontWeight = FontWeight.Bold)
                             }
+                        }
+                    }
+
+                    // Ghost Mode Entry Card
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(20.dp))
+                            .clickable { onStartGhostMode() },
+                        shape = RoundedCornerShape(20.dp),
+                        color = Color(0xFF141A24),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF32FF7E).copy(alpha = 0.4f))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(20.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .background(Color(0xFF32FF7E).copy(alpha = 0.15f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("👻", fontSize = 24.sp)
+                            }
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    "Ghost Mode",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 17.sp,
+                                    color = Color.White
+                                )
+                                Text(
+                                    "“Race against your past self.”",
+                                    fontSize = 13.sp,
+                                    color = Color.White.copy(alpha = 0.7f)
+                                )
+                            }
+                            Icon(
+                                Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                tint = Color(0xFF32FF7E)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Safety & SOS Hub Card
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onOpenSafety() },
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF18181B)),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFDC2626).copy(alpha = 0.5f))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(20.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .background(Color(0xFFDC2626).copy(alpha = 0.15f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("🚨", fontSize = 24.sp)
+                            }
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    "Safety Circle & SOS",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 17.sp,
+                                    color = Color.White
+                                )
+                                Text(
+                                    "Trusted contacts, live alert & test mode",
+                                    fontSize = 13.sp,
+                                    color = Color.White.copy(alpha = 0.7f)
+                                )
+                            }
+                            Icon(
+                                Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                tint = Color(0xFFEF4444)
+                            )
                         }
                     }
 

@@ -183,6 +183,18 @@ fun SoloActiveRunScreen(
         """.trimIndent()
     }
 
+    var sosStatus by remember { mutableStateOf(com.jogpal.app.features.sos.SOSStatus.IDLE) }
+    var isTestMode by remember { mutableStateOf(false) }
+    var showPreviewDialog by remember { mutableStateOf(false) }
+    var showInactivityDialog by remember { mutableStateOf(false) }
+
+    // Smart Inactivity Check Simulation trigger
+    LaunchedEffect(uiState.elapsedTimeSeconds) {
+        if (uiState.elapsedTimeSeconds > 0 && uiState.elapsedTimeSeconds % 120L == 0L && uiState.status == TrackingStatus.ACTIVE) {
+            showInactivityDialog = true
+        }
+    }
+
     if (uiState.finalSummary != null) {
         RunSummaryScreen(
             summary = uiState.finalSummary!!,
@@ -202,6 +214,11 @@ fun SoloActiveRunScreen(
                             }
                             Text(goalDesc, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         }
+                    },
+                    actions = {
+                        com.jogpal.app.features.sos.components.SOSButton(
+                            onClick = { sosStatus = com.jogpal.app.features.sos.SOSStatus.CONFIRMATION }
+                        )
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
                 )
@@ -441,6 +458,82 @@ fun SoloActiveRunScreen(
                     ) {
                         Text("Center Target", fontSize = 10.sp)
                     }
+                }
+
+                // SOS Dialogs & Overlays
+                if (sosStatus == com.jogpal.app.features.sos.SOSStatus.CONFIRMATION) {
+                    com.jogpal.app.features.sos.components.SOSConfirmationDialog(
+                        onConfirm = { sosStatus = com.jogpal.app.features.sos.SOSStatus.COUNTDOWN },
+                        onDismiss = { sosStatus = com.jogpal.app.features.sos.SOSStatus.IDLE }
+                    )
+                }
+
+                if (sosStatus == com.jogpal.app.features.sos.SOSStatus.COUNTDOWN) {
+                    com.jogpal.app.features.sos.components.SOSCountdownOverlay(
+                        isTestMode = isTestMode,
+                        onCountdownFinished = {
+                            sosStatus = com.jogpal.app.features.sos.SOSStatus.ACTIVE
+                            com.jogpal.app.features.sos.SOSRepository.getInstance().logSOSEvent(
+                                com.jogpal.app.features.sos.SOSEvent(
+                                    title = if (isTestMode) "SOS Test Mode" else "Active Emergency SOS",
+                                    dateString = "Just Now",
+                                    type = if (isTestMode) com.jogpal.app.features.sos.SOSEventType.TEST_MODE else com.jogpal.app.features.sos.SOSEventType.ACTIVE_SOS,
+                                    contactsNotifiedCount = 2
+                                )
+                            )
+                        },
+                        onCancel = {
+                            sosStatus = com.jogpal.app.features.sos.SOSStatus.CANCELLED
+                            com.jogpal.app.features.sos.SOSRepository.getInstance().logSOSEvent(
+                                com.jogpal.app.features.sos.SOSEvent(
+                                    title = "Cancelled SOS",
+                                    dateString = "Just Now",
+                                    type = com.jogpal.app.features.sos.SOSEventType.CANCELLED_SOS,
+                                    contactsNotifiedCount = 0
+                                )
+                            )
+                            sosStatus = com.jogpal.app.features.sos.SOSStatus.IDLE
+                        }
+                    )
+                }
+
+                if (sosStatus == com.jogpal.app.features.sos.SOSStatus.ACTIVE) {
+                    val currentLiveLocation = com.jogpal.app.features.sos.LiveLocationData(
+                        latitude = userLoc?.latitude ?: 37.7749,
+                        longitude = userLoc?.longitude ?: -122.4194,
+                        distanceKm = uiState.traveledDistanceKm,
+                        durationSeconds = uiState.elapsedTimeSeconds
+                    )
+                    com.jogpal.app.features.sos.components.SOSActiveStateScreen(
+                        locationData = currentLiveLocation,
+                        trustedContactsCount = 2,
+                        isTestMode = isTestMode,
+                        onDeactivate = { sosStatus = com.jogpal.app.features.sos.SOSStatus.IDLE },
+                        onViewPreview = { showPreviewDialog = true }
+                    )
+                }
+
+                if (showInactivityDialog) {
+                    com.jogpal.app.features.sos.components.InactivityCheckDialog(
+                        onConfirmOk = { showInactivityDialog = false },
+                        onActivateSOS = {
+                            showInactivityDialog = false
+                            sosStatus = com.jogpal.app.features.sos.SOSStatus.CONFIRMATION
+                        }
+                    )
+                }
+
+                if (showPreviewDialog) {
+                    val currentLiveLocation = com.jogpal.app.features.sos.LiveLocationData(
+                        latitude = userLoc?.latitude ?: 37.7749,
+                        longitude = userLoc?.longitude ?: -122.4194,
+                        distanceKm = uiState.traveledDistanceKm,
+                        durationSeconds = uiState.elapsedTimeSeconds
+                    )
+                    com.jogpal.app.features.sos.components.SOSNotificationPreviewDialog(
+                        locationData = currentLiveLocation,
+                        onDismiss = { showPreviewDialog = false }
+                    )
                 }
             }
         }
