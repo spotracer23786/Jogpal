@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -41,6 +43,7 @@ fun LoginScreen(
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var rememberMe by remember { mutableStateOf(false) }
     var localError by remember { mutableStateOf<String?>(null) }
     
     val uiState by viewModel.uiState.collectAsState()
@@ -52,235 +55,300 @@ fun LoginScreen(
     }
 
     Scaffold(
-        containerColor = JogpalBackgroundLight,
-        topBar = {
-            TopAppBar(
-                title = { },
-                navigationIcon = {
-                    Box(
-                        modifier = Modifier
-                            .padding(start = 12.dp)
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(Color.White)
-                            .border(1.dp, JogpalCardBorderLight, CircleShape)
-                            .clickable { onNavigateBack() },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = JogpalOnBackgroundLight,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = JogpalBackgroundLight)
-            )
-        }
+        containerColor = JogpalBackgroundDark
     ) { innerPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(JogpalBackgroundLight)
+                .background(JogpalBackgroundDark)
                 .padding(innerPadding)
         ) {
             Column(
                 modifier = modifier
                     .fillMaxSize()
-                    .padding(horizontal = 24.dp),
+                    .padding(horizontal = 24.dp)
+                    .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
-                JogpalLogo()
+                // Top Shield/Security Badge Icon (from Ref UI)
+                Box(
+                    modifier = Modifier
+                        .size(72.dp)
+                        .clip(CircleShape)
+                        .background(JogpalPrimary.copy(alpha = 0.15f))
+                        .border(1.5.dp, JogpalPrimary.copy(alpha = 0.4f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = null,
+                        tint = JogpalPrimary,
+                        modifier = Modifier.size(36.dp)
+                    )
+                }
 
-                Spacer(modifier = Modifier.height(24.dp))
-                
+                Spacer(modifier = Modifier.height(20.dp))
+
                 Text(
                     text = "Welcome Back",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = JogpalOnBackgroundLight
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = JogpalOnBackgroundDark
                 )
-                
-                Spacer(modifier = Modifier.height(4.dp))
+
+                Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
-                    text = "Log in to join your running partner network",
+                    text = "Log in to your account to continue.",
                     fontSize = 14.sp,
-                    color = JogpalMutedTextLight
+                    color = JogpalMutedTextDark
                 )
-                
-                Spacer(modifier = Modifier.height(36.dp))
 
-                // Elevated Glass Login Card
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // Email Label & Input Field
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "Email",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = JogpalOnBackgroundDark,
+                        modifier = Modifier.padding(bottom = 6.dp)
+                    )
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = { 
+                            email = it
+                            localError = null
+                            viewModel.resetState()
+                        },
+                        placeholder = { Text("Enter your email", color = JogpalMutedTextDark) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
+                        singleLine = true,
+                        enabled = uiState !is AuthUiState.Loading,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = JogpalPrimary,
+                            unfocusedBorderColor = JogpalCardBorderDark,
+                            focusedContainerColor = JogpalSurfaceDark,
+                            unfocusedContainerColor = JogpalSurfaceDark,
+                            focusedTextColor = JogpalOnBackgroundDark,
+                            unfocusedTextColor = JogpalOnBackgroundDark
+                        )
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                // Password Label & Input Field
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "Password",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = JogpalOnBackgroundDark,
+                        modifier = Modifier.padding(bottom = 6.dp)
+                    )
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { 
+                            password = it
+                            localError = null
+                            viewModel.resetState()
+                        },
+                        placeholder = { Text("Enter your password", color = JogpalMutedTextDark) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
+                        singleLine = true,
+                        enabled = uiState !is AuthUiState.Loading,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = JogpalPrimary,
+                            unfocusedBorderColor = JogpalCardBorderDark,
+                            focusedContainerColor = JogpalSurfaceDark,
+                            unfocusedContainerColor = JogpalSurfaceDark,
+                            focusedTextColor = JogpalOnBackgroundDark,
+                            unfocusedTextColor = JogpalOnBackgroundDark
+                        )
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Remember Me + Forgot Password Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { rememberMe = !rememberMe }
+                    ) {
+                        Checkbox(
+                            checked = rememberMe,
+                            onCheckedChange = { rememberMe = it },
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = JogpalPrimary,
+                                uncheckedColor = JogpalMutedTextDark,
+                                checkmarkColor = Color.Black
+                            )
+                        )
+                        Text(
+                            text = "Remember me",
+                            fontSize = 13.sp,
+                            color = JogpalMutedTextDark
+                        )
+                    }
+
+                    Text(
+                        text = "Forgot Password?",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = JogpalPrimary,
+                        modifier = Modifier.clickable { /* Reset password flow */ }
+                    )
+                }
+
+                val currentError = localError ?: (uiState as? AuthUiState.Error)?.message
+                if (currentError != null) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = currentError,
+                        color = MaterialTheme.colorScheme.error,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(28.dp))
+
+                // Smooth Lime Action Button (Sign In / Create Account)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .shadow(12.dp, RoundedCornerShape(28.dp), spotColor = JogpalPrimary.copy(alpha = 0.2f))
-                        .clip(RoundedCornerShape(28.dp))
-                        .background(JogpalSurfaceDark)
-                        .border(1.dp, JogpalCardBorderDark, RoundedCornerShape(28.dp))
-                        .padding(24.dp)
-                ) {
-                    Column {
-                        OutlinedTextField(
-                            value = email,
-                            onValueChange = { 
-                                email = it
-                                localError = null
-                                viewModel.resetState()
-                            },
-                            label = { Text("Email Address") },
-                            leadingIcon = {
-                                Icon(Icons.Default.Email, contentDescription = null, tint = JogpalPrimary)
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(18.dp),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
-                            singleLine = true,
-                            enabled = uiState !is AuthUiState.Loading,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = JogpalPrimary,
-                                unfocusedBorderColor = JogpalCardBorderDark,
-                                focusedTextColor = JogpalOnBackgroundLight,
-                                unfocusedTextColor = JogpalOnBackgroundLight
-                            )
-                        )
-                        
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
-                        OutlinedTextField(
-                            value = password,
-                            onValueChange = { 
-                                password = it
-                                localError = null
-                                viewModel.resetState()
-                            },
-                            label = { Text("Password") },
-                            leadingIcon = {
-                                Icon(Icons.Default.Lock, contentDescription = null, tint = JogpalPrimary)
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(18.dp),
-                            visualTransformation = PasswordVisualTransformation(),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
-                            singleLine = true,
-                            enabled = uiState !is AuthUiState.Loading,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = JogpalPrimary,
-                                unfocusedBorderColor = JogpalCardBorderDark,
-                                focusedTextColor = JogpalOnBackgroundLight,
-                                unfocusedTextColor = JogpalOnBackgroundLight
-                            )
-                        )
-                        
-                        val currentError = localError ?: (uiState as? AuthUiState.Error)?.message
-                        if (currentError != null) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = currentError,
-                                color = MaterialTheme.colorScheme.error,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                        
-                        Spacer(modifier = Modifier.height(24.dp))
-                        
-                        // Combined Social + Action Pill Bar (matching user screenshot)
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp)
-                                .clip(RoundedCornerShape(28.dp))
-                                .background(Color(0xFF334411).copy(alpha = 0.5f))
-                                .border(1.dp, JogpalPrimary.copy(alpha = 0.4f), RoundedCornerShape(28.dp))
-                                .padding(4.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxSize(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                // Google Login Icon Circle
-                                Box(
-                                    modifier = Modifier
-                                        .padding(start = 4.dp)
-                                        .size(44.dp)
-                                        .clip(CircleShape)
-                                        .background(Color.White)
-                                        .clickable(enabled = uiState !is AuthUiState.Loading) {
-                                            viewModel.login("user@jogpal.com", "password123")
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text("G", fontSize = 20.sp, fontWeight = FontWeight.Black, color = Color(0xFF4285F4))
-                                }
-
-                                Spacer(modifier = Modifier.width(6.dp))
-
-                                // Apple Login Icon Circle
-                                Box(
-                                    modifier = Modifier
-                                        .size(44.dp)
-                                        .clip(CircleShape)
-                                        .background(Color.White)
-                                        .clickable(enabled = uiState !is AuthUiState.Loading) {
-                                            viewModel.login("user@jogpal.com", "password123")
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text("", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-                                }
-
-                                Spacer(modifier = Modifier.width(8.dp))
-
-                                // Lime Green Action Button Pill
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxHeight()
-                                        .clip(RoundedCornerShape(24.dp))
-                                        .background(JogpalPrimary)
-                                        .clickable(enabled = uiState !is AuthUiState.Loading) {
-                                            if (email.isBlank() || password.isBlank()) {
-                                                localError = "Please fill in all fields"
-                                            } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                                                localError = "Please enter a valid email address"
-                                            } else {
-                                                viewModel.login(email, password)
-                                            }
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "Log In",
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.Black
-                                    )
-                                }
+                        .height(54.dp)
+                        .clip(RoundedCornerShape(27.dp))
+                        .background(JogpalPrimary)
+                        .clickable(enabled = uiState !is AuthUiState.Loading) {
+                            if (email.isBlank() || password.isBlank()) {
+                                localError = "Please fill in all fields"
+                            } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                                localError = "Please enter a valid email address"
+                            } else {
+                                viewModel.login(email, password)
                             }
-                        }
-                    }
-                }
-                
-                Spacer(modifier = Modifier.weight(1f))
-                
-                TextButton(
-                    onClick = onNavigateToSignUp,
-                    enabled = uiState !is AuthUiState.Loading
+                        },
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Don't have an account? Create one",
-                        fontSize = 14.sp,
+                        text = "Sign In",
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = JogpalPrimary
+                        color = Color.Black
                     )
                 }
-                
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // "Or" Divider Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    HorizontalDivider(
+                        modifier = Modifier.weight(1f),
+                        color = JogpalCardBorderDark
+                    )
+                    Text(
+                        text = "Or",
+                        fontSize = 13.sp,
+                        color = JogpalMutedTextDark,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.weight(1f),
+                        color = JogpalCardBorderDark
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(24.dp))
+
+                // Circular Social Media Buttons Row (Google, Apple, Facebook)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Google Circle
+                    Box(
+                        modifier = Modifier
+                            .size(50.dp)
+                            .clip(CircleShape)
+                            .background(JogpalSurfaceDark)
+                            .border(1.dp, JogpalCardBorderDark, CircleShape)
+                            .clickable(enabled = uiState !is AuthUiState.Loading) {
+                                viewModel.login("user@jogpal.com", "password123")
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("G", fontSize = 22.sp, fontWeight = FontWeight.Black, color = Color(0xFF4285F4))
+                    }
+
+                    // Apple Circle
+                    Box(
+                        modifier = Modifier
+                            .size(50.dp)
+                            .clip(CircleShape)
+                            .background(JogpalSurfaceDark)
+                            .border(1.dp, JogpalCardBorderDark, CircleShape)
+                            .clickable(enabled = uiState !is AuthUiState.Loading) {
+                                viewModel.login("user@jogpal.com", "password123")
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = JogpalOnBackgroundDark)
+                    }
+
+                    // Facebook Circle
+                    Box(
+                        modifier = Modifier
+                            .size(50.dp)
+                            .clip(CircleShape)
+                            .background(JogpalSurfaceDark)
+                            .border(1.dp, JogpalCardBorderDark, CircleShape)
+                            .clickable(enabled = uiState !is AuthUiState.Loading) {
+                                viewModel.login("user@jogpal.com", "password123")
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("f", fontSize = 24.sp, fontWeight = FontWeight.Black, color = Color(0xFF1877F2))
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(36.dp))
+
+                // Toggle between Sign In / Sign Up
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(bottom = 24.dp)
+                ) {
+                    Text(
+                        text = "Don't have an account? ",
+                        fontSize = 14.sp,
+                        color = JogpalMutedTextDark
+                    )
+                    Text(
+                        text = "Sign Up",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = JogpalPrimary,
+                        modifier = Modifier.clickable { onNavigateToSignUp() }
+                    )
+                }
             }
 
             if (uiState is AuthUiState.Loading) {

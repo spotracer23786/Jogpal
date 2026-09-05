@@ -1,27 +1,15 @@
 package com.jogpal.app.features.auth
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -31,12 +19,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jogpal.app.core.designsystem.components.JogpalButton
+import com.jogpal.app.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,167 +54,191 @@ fun SignUpScreen(
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { },
-                navigationIcon = {
-                    TextButton(onClick = onNavigateBack) {
-                        Text("Back", color = MaterialTheme.colorScheme.primary)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
-            )
-        }
+        containerColor = JogpalBackgroundDark
     ) { innerPadding ->
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(JogpalBackgroundDark)
+                .padding(innerPadding)
+        ) {
             Column(
                 modifier = modifier
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background)
-                    .padding(innerPadding)
                     .padding(horizontal = 24.dp)
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                Text(
-                    text = "Create account",
-                    style = MaterialTheme.typography.displayLarge,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                
-                Text(
-                    text = "Join the Jogpal community",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-                )
-                
                 Spacer(modifier = Modifier.height(32.dp))
-                
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { 
-                        name = it
-                        localError = null
-                        viewModel.resetState()
-                    },
-                    label = { Text("Full Name") },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    singleLine = true,
-                    enabled = uiState !is AuthUiState.Loading
+
+                // Profile Badge Header Icon
+                Box(
+                    modifier = Modifier
+                        .size(72.dp)
+                        .clip(CircleShape)
+                        .background(JogpalPrimary.copy(alpha = 0.15f))
+                        .border(1.5.dp, JogpalPrimary.copy(alpha = 0.4f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("J", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = JogpalPrimary)
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Text(
+                    text = "Create Account",
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = JogpalOnBackgroundDark
                 )
-                
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Text(
+                    text = "Sign up to get started with your community.",
+                    fontSize = 14.sp,
+                    color = JogpalMutedTextDark
+                )
+
+                Spacer(modifier = Modifier.height(28.dp))
+
+                // Full Name Input
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text("Full Name", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = JogpalOnBackgroundDark, modifier = Modifier.padding(bottom = 6.dp))
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it; localError = null; viewModel.resetState() },
+                        placeholder = { Text("Enter your name", color = JogpalMutedTextDark) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        singleLine = true,
+                        enabled = uiState !is AuthUiState.Loading,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = JogpalPrimary, unfocusedBorderColor = JogpalCardBorderDark,
+                            focusedContainerColor = JogpalSurfaceDark, unfocusedContainerColor = JogpalSurfaceDark,
+                            focusedTextColor = JogpalOnBackgroundDark, unfocusedTextColor = JogpalOnBackgroundDark
+                        )
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
-                OutlinedTextField(
-                    value = email,
-                    onValueChange = { 
-                        email = it
-                        localError = null
-                        viewModel.resetState()
-                    },
-                    label = { Text("Email") },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                    singleLine = true,
-                    enabled = uiState !is AuthUiState.Loading
-                )
-                
+
+                // Email Input
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text("Email", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = JogpalOnBackgroundDark, modifier = Modifier.padding(bottom = 6.dp))
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = { email = it; localError = null; viewModel.resetState() },
+                        placeholder = { Text("Enter your email", color = JogpalMutedTextDark) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        singleLine = true,
+                        enabled = uiState !is AuthUiState.Loading,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = JogpalPrimary, unfocusedBorderColor = JogpalCardBorderDark,
+                            focusedContainerColor = JogpalSurfaceDark, unfocusedContainerColor = JogpalSurfaceDark,
+                            focusedTextColor = JogpalOnBackgroundDark, unfocusedTextColor = JogpalOnBackgroundDark
+                        )
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = { 
-                        password = it
-                        localError = null
-                        viewModel.resetState()
-                    },
-                    label = { Text("Password") },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    singleLine = true,
-                    enabled = uiState !is AuthUiState.Loading
-                )
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                OutlinedTextField(
-                    value = confirmPassword,
-                    onValueChange = { 
-                        confirmPassword = it
-                        localError = null
-                        viewModel.resetState()
-                    },
-                    label = { Text("Confirm Password") },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    singleLine = true,
-                    enabled = uiState !is AuthUiState.Loading
-                )
-                
+
+                // Password Input
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text("Password", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = JogpalOnBackgroundDark, modifier = Modifier.padding(bottom = 6.dp))
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { password = it; localError = null; viewModel.resetState() },
+                        placeholder = { Text("Create a password", color = JogpalMutedTextDark) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        singleLine = true,
+                        enabled = uiState !is AuthUiState.Loading,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = JogpalPrimary, unfocusedBorderColor = JogpalCardBorderDark,
+                            focusedContainerColor = JogpalSurfaceDark, unfocusedContainerColor = JogpalSurfaceDark,
+                            focusedTextColor = JogpalOnBackgroundDark, unfocusedTextColor = JogpalOnBackgroundDark
+                        )
+                    )
+                }
+
                 val currentError = localError ?: (uiState as? AuthUiState.Error)?.message
                 if (currentError != null) {
-                    Text(
-                        text = currentError,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(top = 8.dp, start = 4.dp)
-                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(text = currentError, color = MaterialTheme.colorScheme.error, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                 }
-                
-                Spacer(modifier = Modifier.height(32.dp))
-                
-                JogpalButton(
-                    text = "Create Account",
-                    onClick = {
-                        if (name.isBlank() || email.isBlank() || password.isBlank() || confirmPassword.isBlank()) {
-                            localError = "Please fill in all fields"
-                        } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                            localError = "Please enter a valid email address"
-                        } else if (password != confirmPassword) {
-                            localError = "Passwords do not match"
-                        } else if (password.length < 6) {
-                            localError = "Password must be at least 6 characters"
-                        } else {
-                            viewModel.signUp(name, email, password)
-                        }
-                    },
-                    enabled = uiState !is AuthUiState.Loading
-                )
-                
-                Spacer(modifier = Modifier.height(32.dp))
-                
-                TextButton(
-                    onClick = onNavigateToLogin,
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
-                    enabled = uiState !is AuthUiState.Loading
+
+                Spacer(modifier = Modifier.height(28.dp))
+
+                // Smooth Lime Action Button
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(54.dp)
+                        .clip(RoundedCornerShape(27.dp))
+                        .background(JogpalPrimary)
+                        .clickable(enabled = uiState !is AuthUiState.Loading) {
+                            if (name.isBlank() || email.isBlank() || password.isBlank()) {
+                                localError = "Please fill in all fields"
+                            } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                                localError = "Please enter a valid email address"
+                            } else if (password.length < 6) {
+                                localError = "Password must be at least 6 characters"
+                            } else {
+                                viewModel.signUp(name, email, password)
+                            }
+                        },
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "Already have an account? Log in",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    Text("Create Account", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black)
                 }
-                
-                Spacer(modifier = Modifier.height(24.dp))
+
+                Spacer(modifier = Modifier.height(28.dp))
+
+                // "Or" Divider
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    HorizontalDivider(modifier = Modifier.weight(1f), color = JogpalCardBorderDark)
+                    Text("Or", fontSize = 13.sp, color = JogpalMutedTextDark, modifier = Modifier.padding(horizontal = 16.dp))
+                    HorizontalDivider(modifier = Modifier.weight(1f), color = JogpalCardBorderDark)
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Social Media Row (Google, Apple, Facebook)
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier.size(50.dp).clip(CircleShape).background(JogpalSurfaceDark).border(1.dp, JogpalCardBorderDark, CircleShape)
+                            .clickable(enabled = uiState !is AuthUiState.Loading) { viewModel.signUp("Google User", "google@jogpal.com", "password123") },
+                        contentAlignment = Alignment.Center
+                    ) { Text("G", fontSize = 22.sp, fontWeight = FontWeight.Black, color = Color(0xFF4285F4)) }
+
+                    Box(
+                        modifier = Modifier.size(50.dp).clip(CircleShape).background(JogpalSurfaceDark).border(1.dp, JogpalCardBorderDark, CircleShape)
+                            .clickable(enabled = uiState !is AuthUiState.Loading) { viewModel.signUp("Apple User", "apple@jogpal.com", "password123") },
+                        contentAlignment = Alignment.Center
+                    ) { Text("", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = JogpalOnBackgroundDark) }
+
+                    Box(
+                        modifier = Modifier.size(50.dp).clip(CircleShape).background(JogpalSurfaceDark).border(1.dp, JogpalCardBorderDark, CircleShape)
+                            .clickable(enabled = uiState !is AuthUiState.Loading) { viewModel.signUp("Facebook User", "fb@jogpal.com", "password123") },
+                        contentAlignment = Alignment.Center
+                    ) { Text("f", fontSize = 24.sp, fontWeight = FontWeight.Black, color = Color(0xFF1877F2)) }
+                }
+
+                Spacer(modifier = Modifier.height(28.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 24.dp)) {
+                    Text("Already have an account? ", fontSize = 14.sp, color = JogpalMutedTextDark)
+                    Text("Sign In", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = JogpalPrimary, modifier = Modifier.clickable { onNavigateToLogin() })
+                }
             }
 
             if (uiState is AuthUiState.Loading) {
-                CircularProgressIndicator(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .size(48.dp),
-                    color = MaterialTheme.colorScheme.primary
-                )
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center).size(48.dp), color = JogpalPrimary)
             }
         }
     }
