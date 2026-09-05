@@ -135,8 +135,11 @@ fun LoginScreen(
                             unfocusedBorderColor = JogpalCardBorderDark,
                             focusedContainerColor = JogpalSurfaceDark,
                             unfocusedContainerColor = JogpalSurfaceDark,
+                            disabledContainerColor = JogpalSurfaceDark,
+                            errorContainerColor = JogpalSurfaceDark,
                             focusedTextColor = JogpalOnBackgroundDark,
-                            unfocusedTextColor = JogpalOnBackgroundDark
+                            unfocusedTextColor = JogpalOnBackgroundDark,
+                            cursorColor = JogpalPrimary
                         )
                     )
                 }
@@ -171,8 +174,11 @@ fun LoginScreen(
                             unfocusedBorderColor = JogpalCardBorderDark,
                             focusedContainerColor = JogpalSurfaceDark,
                             unfocusedContainerColor = JogpalSurfaceDark,
+                            disabledContainerColor = JogpalSurfaceDark,
+                            errorContainerColor = JogpalSurfaceDark,
                             focusedTextColor = JogpalOnBackgroundDark,
-                            unfocusedTextColor = JogpalOnBackgroundDark
+                            unfocusedTextColor = JogpalOnBackgroundDark,
+                            cursorColor = JogpalPrimary
                         )
                     )
                 }
