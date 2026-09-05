@@ -50,15 +50,18 @@ fun JogpalStatCard(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Top
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
                     if (icon != null) {
                         Box(
                             modifier = Modifier
-                                .size(36.dp)
+                                .size(34.dp)
                                 .clip(CircleShape)
-                                .background(JogpalPillBgLight),
+                                .background(JogpalPrimary.copy(alpha = 0.15f)),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -68,26 +71,27 @@ fun JogpalStatCard(
                                 modifier = Modifier.size(18.dp)
                             )
                         }
-                        Spacer(modifier = Modifier.width(10.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
                     }
                     Text(
                         text = title,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = JogpalOnBackgroundLight
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = JogpalOnBackgroundDark,
+                        lineHeight = 16.sp
                     )
                 }
 
                 if (badgeText != null) {
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(badgeColor.copy(alpha = 0.15f))
-                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(badgeColor.copy(alpha = 0.2f))
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
                     ) {
                         Text(
                             text = badgeText,
-                            fontSize = 11.sp,
+                            fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             color = badgeColor
                         )
@@ -95,16 +99,16 @@ fun JogpalStatCard(
                 } else if (onClick != null) {
                     Box(
                         modifier = Modifier
-                            .size(28.dp)
+                            .size(26.dp)
                             .clip(CircleShape)
-                            .background(JogpalPillBgLight),
+                            .background(JogpalSurfaceGlassDark),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.NorthEast,
                             contentDescription = null,
                             tint = JogpalPrimary,
-                            modifier = Modifier.size(14.dp)
+                            modifier = Modifier.size(13.dp)
                         )
                     }
                 }
@@ -114,17 +118,17 @@ fun JogpalStatCard(
 
             Text(
                 text = value,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = JogpalOnBackgroundLight
+                fontSize = 22.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = JogpalOnBackgroundDark
             )
 
             if (subtitle != null) {
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(3.dp))
                 Text(
                     text = subtitle,
-                    fontSize = 12.sp,
-                    color = JogpalMutedTextLight
+                    fontSize = 11.sp,
+                    color = JogpalMutedTextDark
                 )
             }
         }

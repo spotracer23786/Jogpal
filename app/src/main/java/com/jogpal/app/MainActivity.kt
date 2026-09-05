@@ -567,10 +567,12 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(JogpalBackgroundDark)
-                .padding(bottom = innerPadding.calculateBottomPadding())
+                .padding(
+                    top = innerPadding.calculateTopPadding() + 8.dp,
+                    bottom = innerPadding.calculateBottomPadding()
+                )
                 .verticalScroll(rememberScrollState())
         ) {
-            Spacer(modifier = Modifier.height(8.dp))
 
             // Clean Corporate Top App Bar Header
             Row(
