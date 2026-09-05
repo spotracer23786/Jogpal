@@ -767,7 +767,7 @@ fun HomeScreen(
                         .clip(RoundedCornerShape(24.dp))
                         .background(JogpalSurfaceDark)
                         .border(1.dp, JogpalCardBorderDark, RoundedCornerShape(24.dp))
-                        .clickable { onStartGhostMode() }
+                        .clickable { onStartSoloRun() }
                         .padding(16.dp)
                 ) {
                     Column(
@@ -878,15 +878,15 @@ fun HomeScreen(
 
             // Horizontally Scrollable Filter Chips with Direct Navigation Actions
             JogpalFilterChips(
-                options = listOf("All", "Solo Mode", "Partners", "Safety", "History"),
+                options = listOf("All", "Solo Mode", "Ghost Mode", "Partners", "Safety"),
                 selectedOption = selectedFilter,
                 onOptionSelected = { filter ->
                     selectedFilter = filter
                     when (filter) {
-                        "Solo Mode" -> onStartGhostMode()
+                        "Solo Mode" -> onStartSoloRun()
+                        "Ghost Mode" -> onStartGhostMode()
                         "Partners" -> onFindPartner()
                         "Safety" -> onOpenSafety()
-                        "History" -> onViewHistory()
                     }
                 }
             )
