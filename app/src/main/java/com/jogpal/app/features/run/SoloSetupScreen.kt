@@ -76,6 +76,10 @@ class SoloSetupViewModel(
     private var searchJob: Job? = null
 
     init {
+        fetchUserLocation()
+    }
+
+    fun fetchUserLocation() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             locationRepository.getCurrentLocation().fold(
@@ -196,6 +200,7 @@ fun SoloSetupScreen(
     var destinationLocation by remember { mutableStateOf<LatLng?>(null) }
     var userCentered by remember { mutableStateOf(false) }
     var currentLoadedStyleUrl by remember { mutableStateOf("") }
+    var mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
 
     val actualPace = when (paceMode) {
         "EASY" -> 7.0
@@ -204,13 +209,27 @@ fun SoloSetupScreen(
         else -> customPaceSlider.toDouble()
     }
 
-    // Centering Map on user location initially
-    LaunchedEffect(uiState.userLocation) {
+    // Permission launcher for location
+    val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions[android.Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                permissions[android.Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (granted) {
+            viewModel.fetchUserLocation()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.fetchUserLocation()
+    }
+
+    // Centering Map on user location when updated
+    LaunchedEffect(uiState.userLocation, mapLibreMap) {
         uiState.userLocation?.let {
-            if (!userCentered) {
-                startLocation = LatLng(it.latitude, it.longitude)
-                userCentered = true
-            }
+            val userLatLng = LatLng(it.latitude, it.longitude)
+            startLocation = userLatLng
+            mapLibreMap?.animateCamera(CameraUpdateFactory.newLatLngZoom(userLatLng, 15.0))
         }
     }
 
@@ -268,7 +287,6 @@ fun SoloSetupScreen(
 
     Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
         // Map View
-        var mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
         val mapView = remember { MapView(context) }
 
         val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
@@ -300,9 +318,8 @@ fun SoloSetupScreen(
                         mapLibreMap = map
                         map.setStyle(Style.Builder().fromJson(mapStyleUrl)) {
                             currentLoadedStyleUrl = mapStyleUrl
-                            startLocation?.let {
-                                map.moveCamera(CameraUpdateFactory.newLatLngZoom(it, 14.5))
-                            }
+                            val loc = startLocation ?: LatLng(28.6139, 77.2090) // Fallback default
+                            map.moveCamera(CameraUpdateFactory.newLatLngZoom(loc, 15.0))
                         }
 
                         // Tapping on map sets custom destination
@@ -429,10 +446,18 @@ fun SoloSetupScreen(
         // Floating Center Location button
         IconButton(
             onClick = {
-                uiState.userLocation?.let {
-                    val p = LatLng(it.latitude, it.longitude)
+                if (uiState.userLocation != null) {
+                    val p = LatLng(uiState.userLocation!!.latitude, uiState.userLocation!!.longitude)
                     startLocation = p
                     mapLibreMap?.animateCamera(CameraUpdateFactory.newLatLngZoom(p, 15.0))
+                } else {
+                    permissionLauncher.launch(
+                        arrayOf(
+                            android.Manifest.permission.ACCESS_FINE_LOCATION,
+                            android.Manifest.permission.ACCESS_COARSE_LOCATION
+                        )
+                    )
+                    viewModel.fetchUserLocation()
                 }
             },
             modifier = Modifier
