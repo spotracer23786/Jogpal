@@ -152,20 +152,15 @@ fun SoloActiveRunScreen(
         }
     }
 
-    // Map style JSON (OSM base map styles)
+    // Map style JSON (Styled Dark Canvas with Lime accents)
     val mapStyleUrl = remember(themeName) {
-        val tileUrl = if (themeName == "NIGHT") {
-            "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-        } else {
-            "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-        }
         """
         {
           "version": 8,
           "sources": {
             "osm": {
               "type": "raster",
-              "tiles": ["$tileUrl"],
+              "tiles": ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
               "tileSize": 256,
               "attribution": "© OpenStreetMap contributors"
             }
@@ -176,7 +171,13 @@ fun SoloActiveRunScreen(
               "type": "raster",
               "source": "osm",
               "minzoom": 0,
-              "maxzoom": 19
+              "maxzoom": 19,
+              "paint": {
+                "raster-opacity": 0.85,
+                "raster-brightness-max": 0.7,
+                "raster-contrast": 0.25,
+                "raster-saturation": -0.6
+              }
             }
           ]
         }
@@ -423,6 +424,14 @@ fun SoloActiveRunScreen(
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text("PACE", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
                                 Text(uiState.currentPace, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = Color.Black)
+                            }
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("STEPS", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                                Text("${uiState.stepsCount}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = Color.Black)
+                            }
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("CALORIES", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                                Text("${uiState.caloriesBurned} kcal", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black, color = Color.Black)
                             }
                         }
 

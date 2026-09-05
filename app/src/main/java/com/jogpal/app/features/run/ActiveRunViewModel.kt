@@ -35,6 +35,8 @@ data class ActiveRunUiState(
     val elapsedTimeSeconds: Long = 0,
     val traveledDistanceKm: Double = 0.0,
     val currentPace: String = "--:--",
+    val stepsCount: Int = 0,
+    val caloriesBurned: Int = 0,
     val finalSummary: RunSummary? = null
 )
 
@@ -103,7 +105,7 @@ class ActiveRunViewModel(
     }
 
     fun resumeRun() {
-        val runId = _uiState.value.plan?.id ?: return
+        val runId = _uiState.value.plan?.id ?: "SOLO_${System.currentTimeMillis()}"
         _uiState.value = _uiState.value.copy(status = TrackingStatus.ACTIVE)
         
         // Start Timer
@@ -122,9 +124,17 @@ class ActiveRunViewModel(
             locationRepository.getLocationUpdates().collect { loc ->
                 if (_uiState.value.status == TrackingStatus.ACTIVE) {
                     val distance = calculateIncrementalDistance(loc)
+                    val newTotalDist = _uiState.value.traveledDistanceKm + distance
+                    // Average stride length ~0.76 meters (1315 steps per km)
+                    val steps = (newTotalDist * 1315.0).toInt()
+                    // 70kg runner burns ~70 kcal/km
+                    val calories = (newTotalDist * 72.5).toInt()
+
                     _uiState.value = _uiState.value.copy(
                         userLocation = loc,
-                        traveledDistanceKm = _uiState.value.traveledDistanceKm + distance
+                        traveledDistanceKm = newTotalDist,
+                        stepsCount = steps,
+                        caloriesBurned = calories
                     )
                     
                     checkRouteDeviation(loc)
