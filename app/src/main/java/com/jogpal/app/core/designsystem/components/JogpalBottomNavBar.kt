@@ -65,17 +65,17 @@ fun JogpalBottomNavBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(64.dp)
-                .shadow(16.dp, shape = RoundedCornerShape(32.dp), spotColor = Color(0x330F7A60))
+                .shadow(16.dp, shape = RoundedCornerShape(32.dp), spotColor = JogpalPrimary)
                 .clip(RoundedCornerShape(32.dp))
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            Color(0xEEFFFFFF),
-                            Color(0xFDF6FBF9)
+                            Color(0xEE181818),
+                            Color(0xFD121212)
                         )
                     )
                 )
-                .border(1.dp, JogpalCardBorderLight, RoundedCornerShape(32.dp))
+                .border(1.dp, JogpalCardBorderDark, RoundedCornerShape(32.dp))
                 .padding(horizontal = 8.dp),
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically
@@ -100,7 +100,7 @@ fun JogpalBottomNavBar(
                                     )
                                 )
                             )
-                            .border(2.dp, Color.White, CircleShape)
+                            .border(2.dp, Color.Black, CircleShape)
                             .clickable { onNavigate(item.route) },
                         contentAlignment = Alignment.Center
                     ) {

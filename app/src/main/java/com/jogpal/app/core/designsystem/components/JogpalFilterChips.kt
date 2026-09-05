@@ -39,7 +39,7 @@ fun JogpalFilterChips(
                 label = "ChipBg"
             )
             val textColor by animateColorAsState(
-                targetValue = if (isSelected) Color.White else JogpalOnBackgroundLight,
+                targetValue = if (isSelected) Color.Black else JogpalOnBackgroundLight,
                 label = "ChipText"
             )
 

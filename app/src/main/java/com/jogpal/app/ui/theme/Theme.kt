@@ -43,7 +43,7 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun JogpalTheme(
-    darkTheme: Boolean = false, // Default to clean white/green design
+    darkTheme: Boolean = true, // Default to sleek black background and green accents
     dynamicColor: Boolean = false, // Prefer our custom health tracking theme tokens
     content: @Composable () -> Unit
 ) {

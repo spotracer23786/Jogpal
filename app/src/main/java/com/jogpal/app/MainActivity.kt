@@ -598,8 +598,8 @@ fun HomeScreen(
                         modifier = Modifier
                             .size(42.dp)
                             .clip(CircleShape)
-                            .background(Color.White)
-                            .border(1.dp, JogpalCardBorderLight, CircleShape)
+                            .background(JogpalSurfaceDark)
+                            .border(1.dp, JogpalCardBorderDark, CircleShape)
                             .clickable { onOpenSafety() },
                         contentAlignment = Alignment.Center
                     ) {
@@ -623,7 +623,7 @@ fun HomeScreen(
                     ) {
                         Text(
                             text = (profileState as? ProfileUiState.Success)?.profile?.name?.take(1)?.uppercase() ?: "J",
-                            color = Color.White,
+                            color = Color.Black,
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp
                         )
@@ -672,8 +672,8 @@ fun HomeScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(24.dp))
-                        .background(Color.White)
-                        .border(1.dp, JogpalCardBorderLight, RoundedCornerShape(24.dp))
+                        .background(JogpalSurfaceDark)
+                        .border(1.dp, JogpalCardBorderDark, RoundedCornerShape(24.dp))
                         .padding(20.dp)
                 ) {
                     Column {

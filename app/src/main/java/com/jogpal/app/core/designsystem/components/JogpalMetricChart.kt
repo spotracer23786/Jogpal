@@ -34,8 +34,8 @@ fun JogpalMetricChart(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
-            .background(Color.White)
-            .border(1.dp, JogpalCardBorderLight, RoundedCornerShape(24.dp))
+            .background(JogpalSurfaceDark)
+            .border(1.dp, JogpalCardBorderDark, RoundedCornerShape(24.dp))
             .padding(18.dp)
     ) {
         Column {
@@ -120,7 +120,7 @@ fun JogpalMetricChart(
                         }
 
                         drawRect(
-                            color = Color(0xFFF2F7F4),
+                            color = Color(0xFF1E2805),
                             topLeft = androidx.compose.ui.geometry.Offset(0f, height * 0.3f),
                             size = androidx.compose.ui.geometry.Size(width, height * 0.4f)
                         )

@@ -34,10 +34,10 @@ fun RunnerCard(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .shadow(6.dp, RoundedCornerShape(24.dp), spotColor = Color(0x1A0F7A60))
+            .shadow(6.dp, RoundedCornerShape(24.dp), spotColor = JogpalPrimary.copy(alpha = 0.2f))
             .clip(RoundedCornerShape(24.dp))
-            .background(Color.White)
-            .border(1.dp, JogpalCardBorderLight, RoundedCornerShape(24.dp))
+            .background(JogpalSurfaceDark)
+            .border(1.dp, JogpalCardBorderDark, RoundedCornerShape(24.dp))
             .padding(20.dp)
     ) {
         Column {
@@ -121,7 +121,7 @@ fun RunnerCard(
             ) {
                 Text(
                     text = "View Profile",
-                    color = Color.White,
+                    color = Color.Black,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp
                 )
@@ -129,7 +129,7 @@ fun RunnerCard(
                 Icon(
                     imageVector = Icons.Default.NorthEast,
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = Color.Black,
                     modifier = Modifier.size(16.dp)
                 )
             }

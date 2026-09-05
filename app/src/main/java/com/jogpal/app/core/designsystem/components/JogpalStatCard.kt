@@ -37,17 +37,10 @@ fun JogpalStatCard(
 ) {
     Box(
         modifier = modifier
-            .shadow(6.dp, RoundedCornerShape(24.dp), spotColor = Color(0x1A0F7A60))
+            .shadow(6.dp, RoundedCornerShape(24.dp), spotColor = JogpalPrimary.copy(alpha = 0.2f))
             .clip(RoundedCornerShape(24.dp))
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color.White,
-                        Color(0xFFFAFCFA)
-                    )
-                )
-            )
-            .border(1.dp, JogpalCardBorderLight, RoundedCornerShape(24.dp))
+            .background(JogpalSurfaceDark)
+            .border(1.dp, JogpalCardBorderDark, RoundedCornerShape(24.dp))
             .then(
                 if (onClick != null) Modifier.clickable { onClick() } else Modifier
             )
