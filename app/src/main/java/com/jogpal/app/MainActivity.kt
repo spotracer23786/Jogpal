@@ -401,13 +401,19 @@ class MainActivity : ComponentActivity() {
                         com.jogpal.app.features.run.SoloSetupScreen(
                             onNavigateBack = { navController.popBackStack() },
                             onStartSoloRun = { goalType, goalValue, routeShape, paceMode, targetPace, weather, theme, ghostEnabled, startLat, startLng, endLat, endLng ->
-                                navController.navigate("solo_active_run/$goalType/$goalValue/$routeShape/$paceMode/$targetPace/$weather/$theme/$ghostEnabled/$startLat/$startLng/$endLat/$endLng")
+                                navController.navigate("solo_active_run/$goalType/$goalValue/$routeShape/$paceMode/$targetPace/$weather/$theme/$ghostEnabled?startLat=$startLat&startLng=$startLng&endLat=$endLat&endLng=$endLng")
                             }
                         )
                     }
 
                     composable(
-                        "solo_active_run/{goalType}/{goalValue}/{routeShape}/{paceMode}/{targetPace}/{weather}/{theme}/{ghostEnabled}/{startLat}/{startLng}/{endLat}/{endLng}"
+                        "solo_active_run/{goalType}/{goalValue}/{routeShape}/{paceMode}/{targetPace}/{weather}/{theme}/{ghostEnabled}?startLat={startLat}&startLng={startLng}&endLat={endLat}&endLng={endLng}",
+                        arguments = listOf(
+                            androidx.navigation.navArgument("startLat") { defaultValue = "0.0" },
+                            androidx.navigation.navArgument("startLng") { defaultValue = "0.0" },
+                            androidx.navigation.navArgument("endLat") { defaultValue = "0.0" },
+                            androidx.navigation.navArgument("endLng") { defaultValue = "0.0" }
+                        )
                     ) { backStackEntry ->
                         val goalType = backStackEntry.arguments?.getString("goalType") ?: "FREE"
                         val goalValue = backStackEntry.arguments?.getString("goalValue")?.toDoubleOrNull() ?: 0.0

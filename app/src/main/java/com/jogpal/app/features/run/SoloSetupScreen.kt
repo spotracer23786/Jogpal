@@ -1,7 +1,10 @@
 package com.jogpal.app.features.run
 
 import android.content.Context
+import androidx.compose.animation.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,10 +14,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Fullscreen
-import androidx.compose.material.icons.filled.MyLocation
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,6 +32,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jogpal.app.core.common.RouteLoopGenerator
 import com.jogpal.app.core.designsystem.components.JogpalButton
+import com.jogpal.app.core.designsystem.components.NeonMeshCard
 import com.jogpal.app.data.location.LocationRepositoryImpl
 import com.jogpal.app.data.run.GeocodingRepositoryImpl
 import com.jogpal.app.data.run.RouteRepositoryImpl
@@ -185,15 +186,15 @@ fun SoloSetupScreen(
     
     // Configurations
     var goalType by remember { mutableStateOf(SoloGoalType.DISTANCE) }
-    var selectedDistance by remember { mutableDoubleStateOf(5.0) }
-    var selectedDuration by remember { mutableDoubleStateOf(30.0) }
+    var selectedDistance by remember { mutableDoubleStateOf(2.4) }
+    var selectedDuration by remember { mutableDoubleStateOf(20.0) }
     
     var routeShape by remember { mutableStateOf("LOOP") } // "LOOP", "OUT_AND_BACK", "RANDOM_TRAIL", "CUSTOM"
     var paceMode by remember { mutableStateOf("MODERATE") } // "EASY", "MODERATE", "HARD", "CUSTOM"
-    var customPaceSlider by remember { mutableFloatStateOf(6.0f) } // min/km
+    var customPaceSlider by remember { mutableFloatStateOf(5.5f) } // min/km
     
     var weatherSimulation by remember { mutableStateOf("SUNNY") } // "SUNNY", "RAINY"
-    var themeSimulation by remember { mutableStateOf("LIGHT") } // "LIGHT", "NIGHT"
+    var themeSimulation by remember { mutableStateOf("NIGHT") } // "LIGHT", "NIGHT"
     var ghostEnabled by remember { mutableStateOf(true) }
 
     var isFullScreen by remember { mutableStateOf(false) }
@@ -265,11 +266,13 @@ fun SoloSetupScreen(
         }
     }
 
-    // Regerenate generated routes automatically when selections change
+    // Regenerate generated routes automatically when selections change
     LaunchedEffect(startLocation, destinationLocation, routeShape, selectedDistance, selectedDuration, goalType, actualPace) {
         val start = startLocation ?: return@LaunchedEffect
-        val targetDist = if (goalType == SoloGoalType.DISTANCE) selectedDistance else {
-            selectedDuration / actualPace
+        val targetDist = when (goalType) {
+            SoloGoalType.DISTANCE -> selectedDistance
+            SoloGoalType.DURATION -> selectedDuration / actualPace
+            SoloGoalType.FREE -> selectedDistance
         }
 
         if (routeShape != "CUSTOM") {
@@ -286,13 +289,8 @@ fun SoloSetupScreen(
         }
     }
 
-    // Map style JSON (OSM base map styles)
+    // OSM Map Style
     val mapStyleUrl = remember(themeSimulation) {
-        val tileUrl = if (themeSimulation == "NIGHT") {
-            "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
-        } else {
-            "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-        }
         """
         {
           "version": 8,
@@ -310,433 +308,553 @@ fun SoloSetupScreen(
               "type": "raster",
               "source": "osm",
               "minzoom": 0,
-              "maxzoom": 19
+              "maxzoom": 19,
+              "paint": {
+                "raster-opacity": 0.85,
+                "raster-brightness-max": 0.65,
+                "raster-contrast": 0.3,
+                "raster-saturation": -0.7
+              }
             }
           ]
         }
         """.trimIndent()
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
-        // Map View
-        val mapView = remember { MapView(context) }
+    val neonLime = Color(0xFFC8FF00)
 
-        val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
-        DisposableEffect(lifecycleOwner) {
-            val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
-                when (event) {
-                    androidx.lifecycle.Lifecycle.Event.ON_START -> mapView.onStart()
-                    androidx.lifecycle.Lifecycle.Event.ON_RESUME -> mapView.onResume()
-                    androidx.lifecycle.Lifecycle.Event.ON_PAUSE -> mapView.onPause()
-                    androidx.lifecycle.Lifecycle.Event.ON_STOP -> mapView.onStop()
-                    androidx.lifecycle.Lifecycle.Event.ON_DESTROY -> mapView.onDestroy()
-                    else -> {}
-                }
-            }
-            lifecycleOwner.lifecycle.addObserver(observer)
-            onDispose {
-                lifecycleOwner.lifecycle.removeObserver(observer)
-                mapView.onDestroy()
-            }
-        }
-
-        // Render Map
-        AndroidView(
-            factory = { mapView },
-            modifier = Modifier.fillMaxSize(),
-            update = { view ->
-                if (mapLibreMap == null) {
-                    view.getMapAsync { map ->
-                        mapLibreMap = map
-                        map.setStyle(Style.Builder().fromJson(mapStyleUrl)) {
-                            currentLoadedStyleUrl = mapStyleUrl
-                            val loc = startLocation ?: LatLng(28.6139, 77.2090) // Fallback default
-                            map.moveCamera(CameraUpdateFactory.newLatLngZoom(loc, 15.0))
-                        }
-
-                        // Tapping on map sets custom destination
-                        map.addOnMapClickListener { point ->
-                            destinationLocation = point
-                            routeShape = "CUSTOM"
-                            true
-                        }
-                    }
-                } else {
-                    val map = mapLibreMap!!
-                    if (currentLoadedStyleUrl != mapStyleUrl) {
-                        map.setStyle(Style.Builder().fromJson(mapStyleUrl)) {
-                            currentLoadedStyleUrl = mapStyleUrl
-                        }
-                    }
-                }
-
-                val map = mapLibreMap ?: return@AndroidView
-                map.clear()
-
-                // Draw route line
-                if (uiState.computedRoute.isNotEmpty()) {
-                    map.addPolyline(
-                        PolylineOptions()
-                            .addAll(uiState.computedRoute)
-                            .color(android.graphics.Color.parseColor("#3B82F6"))
-                            .width(6f)
-                    )
-                }
-
-                // Start Marker
-                startLocation?.let {
-                    map.addMarker(MarkerOptions().position(it).title("START"))
-                }
-
-                // Destination Marker
-                destinationLocation?.let {
-                    map.addMarker(MarkerOptions().position(it).title("DESTINATION"))
-                }
-            }
-        )
-
-        // Floating Header: Search and Back
-        Column(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
+    Scaffold(
+        containerColor = Color.Black,
+        topBar = {
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Back Button
                 IconButton(
                     onClick = onNavigateBack,
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(42.dp)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.9f))
+                        .background(Color(0xFF1E1E1E))
                 ) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.Black)
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color.White
+                    )
                 }
-                
-                Spacer(modifier = Modifier.width(12.dp))
-                
-                // Airbnb/Uber Style Search Input
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = {
-                        searchQuery = it
-                        viewModel.searchDestination(it)
-                    },
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text("Search run destination...", fontSize = 14.sp) },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
-                    shape = RoundedCornerShape(24.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = Color.White.copy(alpha = 0.95f),
-                        unfocusedContainerColor = Color.White.copy(alpha = 0.9f),
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = Color.Transparent
-                    ),
-                    singleLine = true
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                Text(
+                    text = "START RUN",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.White,
+                    letterSpacing = 2.sp
                 )
+
+                Spacer(modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.width(42.dp))
+            }
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            // --- SECTION 1: RUN MODE ---
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    text = "RUN MODE",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.LightGray,
+                    letterSpacing = 1.5.sp
+                )
+
+                // High Impact SOLO RUN Neon Hero Card (Matching reference design)
+                NeonMeshCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    backgroundColor = neonLime,
+                    shape = RoundedCornerShape(30.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(18.dp)
+                    ) {
+                        // Left Black Inner Card with Neon Runner Icon
+                        Box(
+                            modifier = Modifier
+                                .size(110.dp)
+                                .clip(RoundedCornerShape(22.dp))
+                                .background(Color(0xFF0D0D0D)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.DirectionsRun,
+                                contentDescription = "Solo Runner",
+                                tint = neonLime,
+                                modifier = Modifier.size(64.dp)
+                            )
+                        }
+
+                        // Middle Content Text
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "SOLO RUN",
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Black,
+                                color = Color.Black,
+                                letterSpacing = 1.sp
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "FOCUS & ENDURANCE.",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color(0xFF1A1A1A)
+                            )
+                            Text(
+                                text = "Run at your own pace.",
+                                fontSize = 12.sp,
+                                color = Color(0xFF333333)
+                            )
+                            
+                            Spacer(modifier = Modifier.height(10.dp))
+                            
+                            // Checkmark Indicator
+                            Box(
+                                modifier = Modifier
+                                    .size(30.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.Black),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = "Selected",
+                                    tint = neonLime,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    }
+                }
             }
 
-            // Search results popup
-            if (uiState.searchResults.isNotEmpty()) {
-                Card(
+            // --- SECTION 2: GOAL TYPE CARD (Matching reference screenshot) ---
+            NeonMeshCard(
+                modifier = Modifier.fillMaxWidth(),
+                backgroundColor = neonLime,
+                shape = RoundedCornerShape(30.dp)
+            ) {
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 8.dp)
-                        .heightIn(max = 240.dp),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    LazyColumn {
-                        items(uiState.searchResults) { result ->
-                            ListItem(
-                                headlineContent = { Text(result.name, fontWeight = FontWeight.Bold, fontSize = 14.sp) },
-                                supportingContent = { Text(result.address, fontSize = 12.sp, maxLines = 1) },
+                    // Header Row with Flag Icon
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF141414)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Flag,
+                                contentDescription = "Goal",
+                                tint = neonLime,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+
+                        Text(
+                            text = "GOAL TYPE: ${goalType.name}",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color.Black,
+                            letterSpacing = 0.5.sp
+                        )
+                    }
+
+                    // Goal Type Options List
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        // 1. DISTANCE Option
+                        GoalSelectOptionRow(
+                            title = "DISTANCE",
+                            valueText = String.format(Locale.getDefault(), "%.1f KM", selectedDistance),
+                            isSelected = goalType == SoloGoalType.DISTANCE,
+                            onClick = { goalType = SoloGoalType.DISTANCE }
+                        )
+
+                        if (goalType == SoloGoalType.DISTANCE) {
+                            Slider(
+                                value = selectedDistance.toFloat(),
+                                onValueChange = { selectedDistance = it.toDouble() },
+                                valueRange = 0.5f..25.0f,
+                                steps = 48,
+                                colors = SliderDefaults.colors(
+                                    thumbColor = Color.Black,
+                                    activeTrackColor = Color.Black,
+                                    inactiveTrackColor = Color.Black.copy(alpha = 0.2f)
+                                )
+                            )
+                        }
+
+                        // 2. TIME Option
+                        GoalSelectOptionRow(
+                            title = "TIME",
+                            valueText = String.format(Locale.getDefault(), "%.0f min", selectedDuration),
+                            isSelected = goalType == SoloGoalType.DURATION,
+                            onClick = { goalType = SoloGoalType.DURATION }
+                        )
+
+                        if (goalType == SoloGoalType.DURATION) {
+                            Slider(
+                                value = selectedDuration.toFloat(),
+                                onValueChange = { selectedDuration = it.toDouble() },
+                                valueRange = 5.0f..180.0f,
+                                steps = 35,
+                                colors = SliderDefaults.colors(
+                                    thumbColor = Color.Black,
+                                    activeTrackColor = Color.Black,
+                                    inactiveTrackColor = Color.Black.copy(alpha = 0.2f)
+                                )
+                            )
+                        }
+
+                        // 3. FREESTYLE Option
+                        GoalSelectOptionRow(
+                            title = "FREESTYLE",
+                            valueText = "Open Run",
+                            isSelected = goalType == SoloGoalType.FREE,
+                            onClick = { goalType = SoloGoalType.FREE }
+                        )
+                    }
+                }
+            }
+
+            // --- SECTION 3: ROUTE PREVIEW & EXPANDABLE MAP ---
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    text = "ROUTE & ENVIRONMENT",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.LightGray,
+                    letterSpacing = 1.5.sp
+                )
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(26.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF141414))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        // Route Shape Chips
+                        Text("Route Shape", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            DarkShapeChip("Loop", routeShape == "LOOP") { routeShape = "LOOP" }
+                            DarkShapeChip("Out & Back", routeShape == "OUT_AND_BACK") { routeShape = "OUT_AND_BACK" }
+                            DarkShapeChip("Trail", routeShape == "RANDOM_TRAIL") { routeShape = "RANDOM_TRAIL" }
+                            DarkShapeChip("Custom", routeShape == "CUSTOM") { routeShape = "CUSTOM" }
+                        }
+
+                        // Search Destination Box
+                        OutlinedTextField(
+                            value = searchQuery,
+                            onValueChange = {
+                                searchQuery = it
+                                viewModel.searchDestination(it)
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { Text("Search location destination...", fontSize = 13.sp, color = Color.Gray) },
+                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = neonLime) },
+                            shape = RoundedCornerShape(20.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = Color(0xFF1E1E1E),
+                                unfocusedContainerColor = Color(0xFF1E1E1E),
+                                focusedBorderColor = neonLime,
+                                unfocusedBorderColor = Color.Transparent,
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White
+                            ),
+                            singleLine = true
+                        )
+
+                        // Search results popup
+                        if (uiState.searchResults.isNotEmpty()) {
+                            Card(
                                 modifier = Modifier
-                                    .clickable {
-                                        destinationLocation = LatLng(result.location.lat, result.location.lng)
-                                        routeShape = "CUSTOM"
-                                        searchQuery = result.name
-                                        viewModel.clearSearch()
-                                        mapLibreMap?.animateCamera(
-                                            CameraUpdateFactory.newLatLngZoom(
-                                                LatLng(result.location.lat, result.location.lng),
-                                                15.0
-                                            )
+                                    .fillMaxWidth()
+                                    .heightIn(max = 180.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))
+                            ) {
+                                LazyColumn {
+                                    items(uiState.searchResults) { result ->
+                                        ListItem(
+                                            headlineContent = { Text(result.name, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White) },
+                                            supportingContent = { Text(result.address, fontSize = 11.sp, color = Color.Gray, maxLines = 1) },
+                                            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                                            modifier = Modifier.clickable {
+                                                destinationLocation = LatLng(result.location.lat, result.location.lng)
+                                                routeShape = "CUSTOM"
+                                                searchQuery = result.name
+                                                viewModel.clearSearch()
+                                                mapLibreMap?.animateCamera(
+                                                    CameraUpdateFactory.newLatLngZoom(
+                                                        LatLng(result.location.lat, result.location.lng),
+                                                        15.0
+                                                    )
+                                                )
+                                            }
                                         )
                                     }
+                                }
+                            }
+                        }
+
+                        // Map Box
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(190.dp)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(Color.Black)
+                        ) {
+                            val mapView = remember { MapView(context) }
+                            val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+                            DisposableEffect(lifecycleOwner) {
+                                val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+                                    when (event) {
+                                        androidx.lifecycle.Lifecycle.Event.ON_START -> mapView.onStart()
+                                        androidx.lifecycle.Lifecycle.Event.ON_RESUME -> mapView.onResume()
+                                        androidx.lifecycle.Lifecycle.Event.ON_PAUSE -> mapView.onPause()
+                                        androidx.lifecycle.Lifecycle.Event.ON_STOP -> mapView.onStop()
+                                        androidx.lifecycle.Lifecycle.Event.ON_DESTROY -> mapView.onDestroy()
+                                        else -> {}
+                                    }
+                                }
+                                lifecycleOwner.lifecycle.addObserver(observer)
+                                onDispose {
+                                    lifecycleOwner.lifecycle.removeObserver(observer)
+                                    mapView.onDestroy()
+                                }
+                            }
+
+                            AndroidView(
+                                factory = { mapView },
+                                modifier = Modifier.fillMaxSize(),
+                                update = { view ->
+                                    if (mapLibreMap == null) {
+                                        view.getMapAsync { map ->
+                                            mapLibreMap = map
+                                            map.setStyle(Style.Builder().fromJson(mapStyleUrl)) {
+                                                currentLoadedStyleUrl = mapStyleUrl
+                                                val loc = startLocation ?: LatLng(28.6139, 77.2090)
+                                                map.moveCamera(CameraUpdateFactory.newLatLngZoom(loc, 15.0))
+                                            }
+                                            map.addOnMapClickListener { point ->
+                                                destinationLocation = point
+                                                routeShape = "CUSTOM"
+                                                true
+                                            }
+                                        }
+                                    }
+                                    val map = mapLibreMap ?: return@AndroidView
+                                    map.clear()
+
+                                    if (uiState.computedRoute.isNotEmpty()) {
+                                        map.addPolyline(
+                                            PolylineOptions()
+                                                .addAll(uiState.computedRoute)
+                                                .color(android.graphics.Color.parseColor("#C8FF00"))
+                                                .width(7f)
+                                        )
+                                    }
+
+                                    startLocation?.let {
+                                        map.addMarker(MarkerOptions().position(it).title("START"))
+                                    }
+                                    destinationLocation?.let {
+                                        map.addMarker(MarkerOptions().position(it).title("DESTINATION"))
+                                    }
+                                }
+                            )
+
+                            // My Location Floating Button
+                            IconButton(
+                                onClick = {
+                                    if (uiState.userLocation != null) {
+                                        val p = LatLng(uiState.userLocation!!.latitude, uiState.userLocation!!.longitude)
+                                        startLocation = p
+                                        mapLibreMap?.animateCamera(CameraUpdateFactory.newLatLngZoom(p, 16.0))
+                                    } else {
+                                        permissionLauncher.launch(
+                                            arrayOf(
+                                                android.Manifest.permission.ACCESS_FINE_LOCATION,
+                                                android.Manifest.permission.ACCESS_COARSE_LOCATION
+                                            )
+                                        )
+                                        viewModel.fetchUserLocation()
+                                    }
+                                },
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .padding(12.dp)
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF1E1E1E))
+                            ) {
+                                Icon(Icons.Default.MyLocation, contentDescription = "My Location", tint = neonLime)
+                            }
+                        }
+
+                        // Virtual Partner & Weather row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Virtual Partner (Ghost Runner)", fontSize = 13.sp, color = Color.White)
+                            Switch(
+                                checked = ghostEnabled,
+                                onCheckedChange = { ghostEnabled = it },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color.Black,
+                                    checkedTrackColor = neonLime
+                                )
                             )
                         }
                     }
                 }
             }
-        }
 
-        // Floating Controls Column (Fullscreen toggle & My Location)
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(bottom = if (isFullScreen) 32.dp else 360.dp, end = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Gyro Bearing orient / Fullscreen Toggle
-            IconButton(
-                onClick = { isFullScreen = !isFullScreen },
+            // --- SECTION 4: BIG NEON GO CTA BUTTON (Matching reference screenshot) ---
+            NeonMeshCard(
                 modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(if (isFullScreen) com.jogpal.app.ui.theme.JogpalPrimary else Color.White.copy(alpha = 0.9f))
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Fullscreen,
-                    contentDescription = "Toggle Fullscreen Map",
-                    tint = Color.Black
-                )
-            }
-
-            // Floating Center Location button
-            IconButton(
-                onClick = {
-                    if (uiState.userLocation != null) {
-                        val p = LatLng(uiState.userLocation!!.latitude, uiState.userLocation!!.longitude)
-                        startLocation = p
-                        val cameraPosition = org.maplibre.android.camera.CameraPosition.Builder()
-                            .target(p)
-                            .zoom(16.0)
-                            .bearing(currentDeviceBearing.toDouble())
-                            .tilt(30.0)
-                            .build()
-                        mapLibreMap?.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition))
-                    } else {
-                        permissionLauncher.launch(
-                            arrayOf(
-                                android.Manifest.permission.ACCESS_FINE_LOCATION,
-                                android.Manifest.permission.ACCESS_COARSE_LOCATION
-                            )
-                        )
-                        viewModel.fetchUserLocation()
-                    }
-                },
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.9f))
-            ) {
-                Icon(Icons.Default.MyLocation, contentDescription = "My Location", tint = Color.Black)
-            }
-        }
-
-        // Airbnb/Uber Style Slide-up Sheet Panel
-        if (!isFullScreen) {
-            Card(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .height(340.dp),
-                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 16.dp)
+                    .height(68.dp),
+                backgroundColor = neonLime,
+                shape = RoundedCornerShape(34.dp),
+                onClick = {
+                    val start = startLocation ?: LatLng(0.0, 0.0)
+                    val end = destinationLocation ?: start
+
+                    val targetGoalValue = when (goalType) {
+                        SoloGoalType.DISTANCE -> selectedDistance
+                        SoloGoalType.DURATION -> selectedDuration
+                        SoloGoalType.FREE -> selectedDistance
+                    }
+
+                    val startLatStr = String.format(Locale.US, "%.5f", start.latitude)
+                    val startLngStr = String.format(Locale.US, "%.5f", start.longitude)
+                    val endLatStr = String.format(Locale.US, "%.5f", end.latitude)
+                    val endLngStr = String.format(Locale.US, "%.5f", end.longitude)
+
+                    onStartSoloRun(
+                        goalType.name,
+                        targetGoalValue,
+                        routeShape,
+                        paceMode,
+                        actualPace,
+                        weatherSimulation,
+                        themeSimulation,
+                        ghostEnabled,
+                        startLatStr,
+                        startLngStr,
+                        endLatStr,
+                        endLngStr
+                    )
+                }
             ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 24.dp, vertical = 16.dp)
-                    .verticalScroll(rememberScrollState())
-            ) {
-                // Drag handle bar
                 Box(
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .width(40.dp)
-                        .height(5.dp)
-                        .clip(CircleShape)
-                        .background(Color.LightGray)
-                )
-                
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Heading with Quick Estimates
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        "Solo Run Planning",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color.Black
-                    )
-                    
-                    Text(
-                        String.format(Locale.getDefault(), "Est: %.1f km (approx %d min)", uiState.estimatedDistanceKm, uiState.estimatedDurationMinutes),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        text = "GO",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color.Black,
+                        letterSpacing = 3.sp
                     )
                 }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Section 1: Route Shapes
-                Text("Route Shape Layout", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    ShapeChip(label = "Loop", selected = routeShape == "LOOP") { routeShape = "LOOP" }
-                    ShapeChip(label = "Out & Back", selected = routeShape == "OUT_AND_BACK") { routeShape = "OUT_AND_BACK" }
-                    ShapeChip(label = "Trail", selected = routeShape == "RANDOM_TRAIL") { routeShape = "RANDOM_TRAIL" }
-                    ShapeChip(label = "Custom Direct", selected = routeShape == "CUSTOM") { routeShape = "CUSTOM" }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Section 2: Goals (Distance or Duration sliders)
-                Text("Target Goal", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        RadioButton(selected = goalType == SoloGoalType.DISTANCE, onClick = { goalType = SoloGoalType.DISTANCE })
-                        Text("Distance", fontSize = 14.sp, color = Color.Black)
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        RadioButton(selected = goalType == SoloGoalType.DURATION, onClick = { goalType = SoloGoalType.DURATION })
-                        Text("Duration", fontSize = 14.sp, color = Color.Black)
-                    }
-                }
-
-                if (goalType == SoloGoalType.DISTANCE) {
-                    Column {
-                        Text(String.format(Locale.getDefault(), "Target Distance: %.1f km", selectedDistance), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-                        Slider(
-                            value = selectedDistance.toFloat(),
-                            onValueChange = { selectedDistance = it.toDouble() },
-                            valueRange = 1.0f..25.0f,
-                            steps = 48
-                        )
-                    }
-                } else {
-                    Column {
-                        Text(String.format(Locale.getDefault(), "Target Time: %.0f minutes", selectedDuration), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-                        Slider(
-                            value = selectedDuration.toFloat(),
-                            onValueChange = { selectedDuration = it.toDouble() },
-                            valueRange = 5.0f..180.0f,
-                            steps = 35
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Section 3: Target Pace & Pacing Ghost
-                Text("Target Pace & Virtual Partner", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    ShapeChip(label = "Easy", selected = paceMode == "EASY") { paceMode = "EASY" }
-                    ShapeChip(label = "Moderate", selected = paceMode == "MODERATE") { paceMode = "MODERATE" }
-                    ShapeChip(label = "Hard", selected = paceMode == "HARD") { paceMode = "HARD" }
-                    ShapeChip(label = "Custom", selected = paceMode == "CUSTOM") { paceMode = "CUSTOM" }
-                }
-
-                if (paceMode == "CUSTOM") {
-                    Column {
-                        Text(String.format(Locale.getDefault(), "Custom Pace: %.1f min/km", customPaceSlider), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-                        Slider(
-                            value = customPaceSlider,
-                            onValueChange = { customPaceSlider = it },
-                            valueRange = 3.5f..10.0f,
-                            steps = 13
-                        )
-                    }
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text("Virtual Partner (Ghost Runner)", fontSize = 14.sp, color = Color.Black)
-                    Switch(checked = ghostEnabled, onCheckedChange = { ghostEnabled = it })
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Section 4: Weather & Theme Customizer
-                Text("Environment Simulator", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.Gray)
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Weather: ", fontSize = 14.sp, color = Color.Black)
-                        ShapeChip(label = "Sunny", selected = weatherSimulation == "SUNNY") { weatherSimulation = "SUNNY" }
-                        Spacer(modifier = Modifier.width(6.dp))
-                        ShapeChip(label = "Rainy", selected = weatherSimulation == "RAINY") { weatherSimulation = "RAINY" }
-                    }
-                    
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Map: ", fontSize = 14.sp, color = Color.Black)
-                        ShapeChip(label = "Light", selected = themeSimulation == "LIGHT") { themeSimulation = "LIGHT" }
-                        Spacer(modifier = Modifier.width(6.dp))
-                        ShapeChip(label = "Night", selected = themeSimulation == "NIGHT") { themeSimulation = "NIGHT" }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // CTA Launch Button
-                JogpalButton(
-                    text = "Go Solo Running",
-                    onClick = {
-                        val start = startLocation ?: LatLng(0.0, 0.0)
-                        val end = destinationLocation ?: start
-                        
-                        val targetGoalValue = if (goalType == SoloGoalType.DISTANCE) selectedDistance else selectedDuration
-                        
-                        onStartSoloRun(
-                            goalType.name,
-                            targetGoalValue,
-                            routeShape,
-                            paceMode,
-                            actualPace,
-                            weatherSimulation,
-                            themeSimulation,
-                            ghostEnabled,
-                            start.latitude.toString(),
-                            start.longitude.toString(),
-                            end.latitude.toString(),
-                            end.longitude.toString()
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth().height(56.dp)
-                )
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
+
+@Composable
+private fun GoalSelectOptionRow(
+    title: String,
+    valueText: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val bg = if (isSelected) Color.Black.copy(alpha = 0.25f) else Color.Transparent
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(bg)
+            .clickable { onClick() }
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = title,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = Color.Black
+        )
+
+        Text(
+            text = valueText,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            color = if (isSelected) Color.Black else Color(0xFF333333)
+        )
+    }
 }
 
 @Composable
-private fun ShapeChip(label: String, selected: Boolean, onClick: () -> Unit) {
+private fun DarkShapeChip(label: String, selected: Boolean, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
-        color = if (selected) MaterialTheme.colorScheme.primary else Color(0xFFF3F4F6),
-        contentColor = if (selected) Color.Black else Color.DarkGray,
-        modifier = Modifier.height(36.dp)
+        shape = RoundedCornerShape(14.dp),
+        color = if (selected) Color(0xFFC8FF00) else Color(0xFF1E1E1E),
+        contentColor = if (selected) Color.Black else Color.LightGray,
+        modifier = Modifier.height(34.dp)
     ) {
-        Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 14.dp)) {
-            Text(label, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = 12.dp)) {
+            Text(label, fontWeight = FontWeight.Bold, fontSize = 11.sp)
         }
     }
 }
