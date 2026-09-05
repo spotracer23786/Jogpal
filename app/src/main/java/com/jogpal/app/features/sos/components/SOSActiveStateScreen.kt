@@ -7,7 +7,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -128,6 +128,46 @@ fun SOSActiveStateScreen(
 
         // Live Location Status Box
         LiveLocationStatusView(locationData = locationData)
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Emergency Strobe & Loud Siren Controls
+        val isSirenPlaying = remember { mutableStateOf(false) }
+        val isStrobeActive = remember { mutableStateOf(false) }
+
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF18181B)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("Emergency Alarms & Flashers", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text("Deter immediate threats with loud sound and bright flashing", color = Color(0xFFA1A1AA), fontSize = 12.sp)
+                
+                Spacer(modifier = Modifier.height(14.dp))
+                
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Button(
+                        onClick = { isSirenPlaying.value = !isSirenPlaying.value },
+                        colors = ButtonDefaults.buttonColors(containerColor = if (isSirenPlaying.value) Color(0xFFEF4444) else Color(0xFF27272A)),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f).height(48.dp)
+                    ) {
+                        Text(if (isSirenPlaying.value) "🔊 MUTE SIREN" else "📢 LOUD SIREN", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
+
+                    Button(
+                        onClick = { isStrobeActive.value = !isStrobeActive.value },
+                        colors = ButtonDefaults.buttonColors(containerColor = if (isStrobeActive.value) Color(0xFFFBBF24) else Color(0xFF27272A)),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f).height(48.dp)
+                    ) {
+                        Text(if (isStrobeActive.value) "⚡ STROBE ON" else "💡 FLASHER", color = if (isStrobeActive.value) Color.Black else Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
+                }
+            }
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 

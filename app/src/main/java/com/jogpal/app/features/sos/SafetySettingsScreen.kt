@@ -116,6 +116,51 @@ fun SafetySettingsScreen(
                 onAddContactClick = { showAddContactDialog = true }
             )
 
+            // Automated Fall & Impact Detection Toggle Card
+            var fallDetectionEnabled by remember { mutableStateOf(true) }
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF18181B)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("Automated Fall & Impact Guard", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            Box(
+                                modifier = Modifier
+                                    .background(Color(0xFFEF4444).copy(alpha = 0.2f), RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text("AI SENSOR", color = Color(0xFFEF4444), fontSize = 9.sp, fontWeight = FontWeight.Black)
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Uses hardware accelerometer to trigger immediate emergency countdown upon sudden hard impacts or falls.",
+                            color = Color(0xFFA1A1AA),
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Switch(
+                        checked = fallDetectionEnabled,
+                        onCheckedChange = { fallDetectionEnabled = it },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = com.jogpal.app.ui.theme.JogpalPrimary
+                        )
+                    )
+                }
+            }
+
             // Smart Inactivity Check Toggle Card
             Card(
                 shape = RoundedCornerShape(16.dp),
