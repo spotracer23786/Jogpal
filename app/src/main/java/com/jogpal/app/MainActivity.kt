@@ -876,11 +876,19 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            // Horizontally Scrollable Filter Chips
+            // Horizontally Scrollable Filter Chips with Direct Navigation Actions
             JogpalFilterChips(
-                options = listOf("All", "Overview", "Solo Mode", "Partners", "Safety"),
+                options = listOf("All", "Solo Mode", "Partners", "Safety", "History"),
                 selectedOption = selectedFilter,
-                onOptionSelected = { selectedFilter = it }
+                onOptionSelected = { filter ->
+                    selectedFilter = filter
+                    when (filter) {
+                        "Solo Mode" -> onStartGhostMode()
+                        "Partners" -> onFindPartner()
+                        "Safety" -> onOpenSafety()
+                        "History" -> onViewHistory()
+                    }
+                }
             )
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -952,7 +960,7 @@ fun HomeScreen(
                         value = profileObj?.preferredPace ?: "--",
                         subtitle = "Target Pace",
                         icon = Icons.Default.DirectionsRun,
-                        onClick = onFindPartner,
+                        onClick = onStartGhostMode,
                         modifier = Modifier.weight(1f)
                     )
                     JogpalStatCard(
