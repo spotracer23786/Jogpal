@@ -173,9 +173,9 @@ fun PlanRunScreen(
 
                 val isDark = androidx.compose.foundation.isSystemInDarkTheme()
                 val tileUrl = if (isDark) {
-                    "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"
+                    "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
                 } else {
-                    "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
+                    "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
                 }
                 val osmStyleJson = """
                 {

@@ -155,9 +155,9 @@ fun SoloActiveRunScreen(
     // Map style JSON (OSM base map styles)
     val mapStyleUrl = remember(themeName) {
         val tileUrl = if (themeName == "NIGHT") {
-            "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"
+            "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
         } else {
-            "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
+            "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
         }
         """
         {
@@ -167,7 +167,7 @@ fun SoloActiveRunScreen(
               "type": "raster",
               "tiles": ["$tileUrl"],
               "tileSize": 256,
-              "attribution": "© CartoDB / © OpenStreetMap"
+              "attribution": "© OpenStreetMap contributors"
             }
           },
           "layers": [
@@ -176,7 +176,7 @@ fun SoloActiveRunScreen(
               "type": "raster",
               "source": "osm",
               "minzoom": 0,
-              "maxzoom": 20
+              "maxzoom": 19
             }
           ]
         }

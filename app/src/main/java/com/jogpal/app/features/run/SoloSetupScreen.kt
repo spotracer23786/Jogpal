@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -195,12 +196,43 @@ fun SoloSetupScreen(
     var themeSimulation by remember { mutableStateOf("LIGHT") } // "LIGHT", "NIGHT"
     var ghostEnabled by remember { mutableStateOf(true) }
 
-    // Coordinates
+    var isFullScreen by remember { mutableStateOf(false) }
+    var currentDeviceBearing by remember { mutableFloatStateOf(0f) }
+    val scope = rememberCoroutineScope()
+
+    // Coordinates & Map state
     var startLocation by remember { mutableStateOf<LatLng?>(null) }
     var destinationLocation by remember { mutableStateOf<LatLng?>(null) }
-    var userCentered by remember { mutableStateOf(false) }
     var currentLoadedStyleUrl by remember { mutableStateOf("") }
     var mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
+
+    // Gyroscope / Compass Sensor integration for 3D Map tilt & bearing orientation
+    DisposableEffect(Unit) {
+        val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as android.hardware.SensorManager
+        val rotationSensor = sensorManager?.getDefaultSensor(android.hardware.Sensor.TYPE_ROTATION_VECTOR)
+        
+        val sensorListener = object : android.hardware.SensorEventListener {
+            override fun onSensorChanged(event: android.hardware.SensorEvent?) {
+                if (event == null) return
+                if (event.sensor.type == android.hardware.Sensor.TYPE_ROTATION_VECTOR) {
+                    val rotationMatrix = FloatArray(9)
+                    android.hardware.SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values)
+                    val orientationValues = FloatArray(3)
+                    android.hardware.SensorManager.getOrientation(rotationMatrix, orientationValues)
+                    val azimuth = Math.toDegrees(orientationValues[0].toDouble()).toFloat()
+                    currentDeviceBearing = (azimuth + 360) % 360
+                }
+            }
+            override fun onAccuracyChanged(sensor: android.hardware.Sensor?, accuracy: Int) {}
+        }
+        
+        rotationSensor?.let {
+            sensorManager.registerListener(sensorListener, it, android.hardware.SensorManager.SENSOR_DELAY_UI)
+        }
+        onDispose {
+            sensorManager.unregisterListener(sensorListener)
+        }
+    }
 
     val actualPace = when (paceMode) {
         "EASY" -> 7.0
@@ -257,9 +289,9 @@ fun SoloSetupScreen(
     // Map style JSON (OSM base map styles)
     val mapStyleUrl = remember(themeSimulation) {
         val tileUrl = if (themeSimulation == "NIGHT") {
-            "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"
+            "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
         } else {
-            "https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
+            "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
         }
         """
         {
@@ -267,9 +299,9 @@ fun SoloSetupScreen(
           "sources": {
             "osm": {
               "type": "raster",
-              "tiles": ["$tileUrl"],
+              "tiles": ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
               "tileSize": 256,
-              "attribution": "© CartoDB / © OpenStreetMap"
+              "attribution": "© OpenStreetMap contributors"
             }
           },
           "layers": [
@@ -278,7 +310,7 @@ fun SoloSetupScreen(
               "type": "raster",
               "source": "osm",
               "minzoom": 0,
-              "maxzoom": 20
+              "maxzoom": 19
             }
           ]
         }
@@ -443,43 +475,71 @@ fun SoloSetupScreen(
             }
         }
 
-        // Floating Center Location button
-        IconButton(
-            onClick = {
-                if (uiState.userLocation != null) {
-                    val p = LatLng(uiState.userLocation!!.latitude, uiState.userLocation!!.longitude)
-                    startLocation = p
-                    mapLibreMap?.animateCamera(CameraUpdateFactory.newLatLngZoom(p, 15.0))
-                } else {
-                    permissionLauncher.launch(
-                        arrayOf(
-                            android.Manifest.permission.ACCESS_FINE_LOCATION,
-                            android.Manifest.permission.ACCESS_COARSE_LOCATION
-                        )
-                    )
-                    viewModel.fetchUserLocation()
-                }
-            },
+        // Floating Controls Column (Fullscreen toggle & My Location)
+        Column(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(bottom = 360.dp, end = 16.dp)
-                .size(48.dp)
-                .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.9f))
+                .padding(bottom = if (isFullScreen) 32.dp else 360.dp, end = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Icon(Icons.Default.MyLocation, contentDescription = "My Location", tint = Color.Black)
+            // Gyro Bearing orient / Fullscreen Toggle
+            IconButton(
+                onClick = { isFullScreen = !isFullScreen },
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(if (isFullScreen) com.jogpal.app.ui.theme.JogpalPrimary else Color.White.copy(alpha = 0.9f))
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Fullscreen,
+                    contentDescription = "Toggle Fullscreen Map",
+                    tint = Color.Black
+                )
+            }
+
+            // Floating Center Location button
+            IconButton(
+                onClick = {
+                    if (uiState.userLocation != null) {
+                        val p = LatLng(uiState.userLocation!!.latitude, uiState.userLocation!!.longitude)
+                        startLocation = p
+                        val cameraPosition = org.maplibre.android.camera.CameraPosition.Builder()
+                            .target(p)
+                            .zoom(16.0)
+                            .bearing(currentDeviceBearing.toDouble())
+                            .tilt(30.0)
+                            .build()
+                        mapLibreMap?.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition))
+                    } else {
+                        permissionLauncher.launch(
+                            arrayOf(
+                                android.Manifest.permission.ACCESS_FINE_LOCATION,
+                                android.Manifest.permission.ACCESS_COARSE_LOCATION
+                            )
+                        )
+                        viewModel.fetchUserLocation()
+                    }
+                },
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.9f))
+            ) {
+                Icon(Icons.Default.MyLocation, contentDescription = "My Location", tint = Color.Black)
+            }
         }
 
         // Airbnb/Uber Style Slide-up Sheet Panel
-        Card(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .height(340.dp),
-            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 16.dp)
-        ) {
+        if (!isFullScreen) {
+            Card(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .height(340.dp),
+                shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 16.dp)
+            ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -663,6 +723,7 @@ fun SoloSetupScreen(
             }
         }
     }
+}
 }
 
 @Composable

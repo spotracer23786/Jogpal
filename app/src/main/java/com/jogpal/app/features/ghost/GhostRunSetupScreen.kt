@@ -42,9 +42,9 @@ const val DARK_MAP_STYLE = """
   "sources": {
     "osm": {
       "type": "raster",
-      "tiles": ["https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"],
+      "tiles": ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
       "tileSize": 256,
-      "attribution": "© CartoDB / © OpenStreetMap"
+      "attribution": "© OpenStreetMap contributors"
     }
   },
   "layers": [
@@ -53,7 +53,7 @@ const val DARK_MAP_STYLE = """
       "type": "raster",
       "source": "osm",
       "minzoom": 0,
-      "maxzoom": 20
+      "maxzoom": 19
     }
   ]
 }
