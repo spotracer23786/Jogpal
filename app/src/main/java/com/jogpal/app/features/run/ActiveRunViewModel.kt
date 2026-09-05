@@ -143,10 +143,22 @@ class ActiveRunViewModel(
         lastLocation = newLoc
         if (prev == null || _uiState.value.status != TrackingStatus.ACTIVE) return 0.0
         
-        return LocationUtils.calculateDistanceKm(
+        val distKm = LocationUtils.calculateDistanceKm(
             prev.latitude, prev.longitude,
             newLoc.latitude, newLoc.longitude
         )
+        
+        // Calculate speed in km/h based on timestamp delta
+        val timeDeltaHours = (newLoc.updatedAt - prev.updatedAt) / 3600000.0
+        if (timeDeltaHours > 0) {
+            val speedKmH = distKm / timeDeltaHours
+            // Discard movement if speed > 22 km/h (World-record human sprinting limit ~25 km/h over distance)
+            if (speedKmH > 22.0) {
+                return 0.0
+            }
+        }
+        
+        return distKm
     }
 
     private fun checkRouteDeviation(currentLoc: com.jogpal.app.domain.user.UserLocation) {

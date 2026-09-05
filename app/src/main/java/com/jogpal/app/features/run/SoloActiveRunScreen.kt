@@ -187,6 +187,32 @@ fun SoloActiveRunScreen(
     var isTestMode by remember { mutableStateOf(false) }
     var showPreviewDialog by remember { mutableStateOf(false) }
     var showInactivityDialog by remember { mutableStateOf(false) }
+    var showFinishConfirmationDialog by remember { mutableStateOf(false) }
+
+    if (showFinishConfirmationDialog) {
+        AlertDialog(
+            onDismissRequest = { showFinishConfirmationDialog = false },
+            title = { Text("Finish Solo Run?", fontWeight = FontWeight.Bold, color = Color.White) },
+            text = { Text("Are you sure you want to end your run session now? Your progress will be saved.", color = Color.LightGray) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showFinishConfirmationDialog = false
+                        viewModel.finishRun()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Text("Finish Run", color = Color.Black, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showFinishConfirmationDialog = false }) {
+                    Text("Cancel", color = Color.White)
+                }
+            },
+            containerColor = Color(0xFF1E1E1E)
+        )
+    }
 
     // Smart Inactivity Check Simulation trigger
     LaunchedEffect(uiState.elapsedTimeSeconds) {
@@ -277,8 +303,8 @@ fun SoloActiveRunScreen(
                         if (routePoints.isNotEmpty()) {
                             map.addPolyline(PolylineOptions()
                                 .addAll(routePoints)
-                                .color(AndroidColor.parseColor("#3B82F6"))
-                                .width(6f))
+                                .color(AndroidColor.parseColor("#B5D333"))
+                                .width(8f))
                             
                             // Finish Marker
                             map.addMarker(MarkerOptions().position(routePoints.last()).title("FINISH LINE"))
@@ -296,7 +322,13 @@ fun SoloActiveRunScreen(
                         userLoc?.let {
                             val point = LatLng(it.latitude, it.longitude)
                             map.addMarker(MarkerOptions().position(point).title("MY POSITION"))
-                            if (isMapFollowing) {
+                        }
+
+                        if (isMapFollowing) {
+                            val targetPoint = userLoc?.let { LatLng(it.latitude, it.longitude) }
+                                ?: customStartLat?.let { LatLng(it, customStartLng ?: 0.0) }
+                            
+                            targetPoint?.let { point ->
                                 val cameraUpdate = CameraUpdateFactory.newCameraPosition(
                                     org.maplibre.android.camera.CameraPosition.Builder()
                                         .target(point)
@@ -441,7 +473,7 @@ fun SoloActiveRunScreen(
                             Box(modifier = Modifier.weight(1f)) {
                                 JogpalButton(
                                     text = "Finish",
-                                    onClick = { viewModel.finishRun() },
+                                    onClick = { showFinishConfirmationDialog = true },
                                     containerColor = MaterialTheme.colorScheme.error
                                 )
                             }
