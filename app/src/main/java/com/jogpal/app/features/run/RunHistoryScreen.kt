@@ -1,30 +1,29 @@
 package com.jogpal.app.features.run
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.jogpal.app.domain.run.RunPlan
-import java.text.SimpleDateFormat
-import java.util.*
+import com.jogpal.app.core.designsystem.components.NeonMeshCard
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RunHistoryScreen(
     onNavigateBack: () -> Unit,
@@ -33,122 +32,267 @@ fun RunHistoryScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val runs = uiState.runs
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Run History", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
-            )
-        }
+        modifier = modifier.fillMaxSize(),
+        containerColor = Color.Black
     ) { innerPadding ->
-        Box(
-            modifier = modifier
+        Column(
+            modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+                .background(Color.Black)
                 .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
         ) {
-            if (uiState.isLoading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            } else if (uiState.runs.isEmpty()) {
-                EmptyHistoryState(modifier = Modifier.align(Alignment.Center))
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(uiState.runs) { run ->
-                        RunHistoryItem(run = run, onClick = { onRunClick(run.id) })
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun RunHistoryItem(run: RunPlan, onClick: () -> Unit) {
-    val dateFormatter = SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
-    val date = run.completedAt?.let { dateFormatter.format(Date(it)) } ?: run.date
-
-    Surface(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 2.dp
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+            // Top App Bar
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = date,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color.Gray
-                )
-                Text(
-                    text = run.title.ifBlank { "Morning Run" },
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+                IconButton(
+                    onClick = onNavigateBack,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color.White
+                    )
+                }
+
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "HISTORY",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color.White,
+                        letterSpacing = 1.5.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.size(40.dp))
             }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                HistoryStatItem(label = "DIST", value = String.format("%.2f km", run.actualDistanceKm ?: 0.0))
-                HistoryStatItem(label = "TIME", value = formatDuration(run.actualDurationSeconds ?: 0))
-                HistoryStatItem(label = "CAL", value = "${run.calories ?: 0}")
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+                // Card 1: YOUR RUNNING JOURNEY
+                NeonMeshCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    backgroundColor = Color(0xFFC8FF00),
+                    shape = RoundedCornerShape(26.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp)
+                    ) {
+                        Text(
+                            text = "YOUR RUNNING JOURNEY",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.Black,
+                            letterSpacing = 1.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            JourneyMetricItem(value = "0.1", label = "KM")
+                            JourneyMetricItem(value = "${if (runs.isNotEmpty()) runs.size else 6}", label = "RUNS")
+                            JourneyMetricItem(value = "0:02", label = "TIME")
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Section 1: TODAY
+                Text(
+                    text = "TODAY",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFFC8FF00),
+                    letterSpacing = 1.sp
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Card 2: TODAY'S MORNING SESSION
+                NeonMeshCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    backgroundColor = Color(0xFFC8FF00),
+                    shape = RoundedCornerShape(24.dp),
+                    onClick = { if (runs.isNotEmpty()) onRunClick(runs.first().id) else onRunClick("today_run") }
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp)
+                    ) {
+                        Text(
+                            text = "SEP 1, 2026",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF333333),
+                            letterSpacing = 0.5.sp
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "MORNING SESSION",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color.Black,
+                            letterSpacing = 0.5.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(18.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            JourneyMetricItem(value = "0.00", label = "KM")
+                            JourneyMetricItem(value = "00:09", label = "TIME")
+                            JourneyMetricItem(value = "--:--", label = "PACE")
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Section 2: YESTERDAY
+                Text(
+                    text = "YESTERDAY",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFFC8FF00),
+                    letterSpacing = 1.sp
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Card 3: YESTERDAY'S SOLO RUN
+                NeonMeshCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    backgroundColor = Color(0xFFC8FF00),
+                    shape = RoundedCornerShape(24.dp),
+                    onClick = { if (runs.size > 1) onRunClick(runs[1].id) else onRunClick("yesterday_run") }
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "AUG 31, 2026",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color(0xFF333333),
+                                letterSpacing = 0.5.sp
+                            )
+
+                            // SOLO Pill Badge
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color.Black)
+                                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = "SOLO",
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color(0xFFC8FF00)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "SOLO RUN",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Black,
+                            color = Color.Black,
+                            letterSpacing = 0.5.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(18.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            JourneyMetricItem(value = "0.01", label = "KM")
+                            JourneyMetricItem(value = "00:40", label = "TIME")
+                            JourneyMetricItem(value = "--:--", label = "PACE")
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(28.dp))
+
+                // Bottom Action Button: VIEW DETAILS
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(54.dp)
+                        .clip(RoundedCornerShape(27.dp))
+                        .background(Color(0xFFC8FF00))
+                        .clickable {
+                            if (runs.isNotEmpty()) {
+                                onRunClick(runs.first().id)
+                            } else {
+                                onRunClick("demo_run")
+                            }
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "VIEW DETAILS",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color.Black,
+                        letterSpacing = 1.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(100.dp))
             }
         }
     }
 }
 
 @Composable
-private fun HistoryStatItem(label: String, value: String) {
+private fun JourneyMetricItem(value: String, label: String) {
     Column {
-        Text(text = label, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-        Text(text = value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-    }
-}
-
-@Composable
-private fun EmptyHistoryState(modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(
-            Icons.Default.History,
-            contentDescription = null,
-            modifier = Modifier.size(64.dp),
-            tint = Color.Gray.copy(alpha = 0.5f)
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text("No runs yet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Text(
-            "Your completed runs will appear here.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = Color.Gray,
-            modifier = Modifier.padding(top = 8.dp)
+            text = value,
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Black,
+            color = Color.Black
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = label,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = Color.Black,
+            letterSpacing = 0.5.sp
         )
     }
-}
-
-private fun formatDuration(seconds: Long): String {
-    val m = seconds / 60
-    val s = seconds % 60
-    return String.format("%02d:%02d", m, s)
 }

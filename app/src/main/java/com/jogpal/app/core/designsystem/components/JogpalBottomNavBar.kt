@@ -2,7 +2,6 @@ package com.jogpal.app.core.designsystem.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -18,7 +17,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -30,123 +28,108 @@ sealed class BottomNavItem(
     val route: String,
     val title: String,
     val selectedIcon: ImageVector,
-    val unselectedIcon: ImageVector,
-    val isCenterButton: Boolean = false
+    val unselectedIcon: ImageVector
 ) {
-    object Home : BottomNavItem("home", "Home", Icons.Filled.Home, Icons.Outlined.Home)
-    object Matching : BottomNavItem("nearby_runners", "Runners", Icons.Filled.People, Icons.Outlined.People)
-    object Ghost : BottomNavItem("ghost_select", "Ghost", Icons.Filled.AutoAwesome, Icons.Outlined.AutoAwesome, isCenterButton = true)
-    object History : BottomNavItem("run_history", "History", Icons.Filled.History, Icons.Outlined.History)
-    object Profile : BottomNavItem("passport", "Passport", Icons.Filled.Badge, Icons.Outlined.Badge)
+    object Home : BottomNavItem("home", "HOME", Icons.Filled.Home, Icons.Outlined.Home)
+    object Ranks : BottomNavItem("nearby_runners", "RANKS", Icons.Filled.TrendingUp, Icons.Outlined.TrendingUp)
+    object History : BottomNavItem("run_history", "HISTORY", Icons.Filled.History, Icons.Outlined.History)
+    object Profile : BottomNavItem("passport", "PROFILE", Icons.Filled.Person, Icons.Outlined.Person)
+    object Settings : BottomNavItem("safety_settings", "SETTINGS", Icons.Filled.Settings, Icons.Outlined.Settings)
 }
 
 @Composable
 fun JogpalBottomNavBar(
     currentRoute: String,
     onNavigate: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onSparkleClick: (() -> Unit)? = null
 ) {
     val items = listOf(
         BottomNavItem.Home,
-        BottomNavItem.Matching,
-        BottomNavItem.Ghost,
+        BottomNavItem.Ranks,
         BottomNavItem.History,
-        BottomNavItem.Profile
+        BottomNavItem.Profile,
+        BottomNavItem.Settings
     )
 
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        contentAlignment = Alignment.BottomCenter
-    ) {
-        // Floating glass capsule container
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(64.dp)
-                .shadow(16.dp, shape = RoundedCornerShape(32.dp), spotColor = JogpalPrimary)
-                .clip(RoundedCornerShape(32.dp))
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xEE181818),
-                            Color(0xFD121212)
-                        )
-                    )
-                )
-                .border(1.dp, JogpalCardBorderDark, RoundedCornerShape(32.dp))
-                .padding(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.SpaceAround,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            items.forEach { item ->
-                val isSelected = currentRoute == item.route
+    val neonColor = Color(0xFFC8FF00)
 
-                if (item.isCenterButton) {
-                    // Center Floating Action Sparkle Button (as seen in Ref UI 1 & 2)
-                    Box(
-                        modifier = Modifier
-                            .offset(y = (-6).dp)
-                            .size(52.dp)
-                            .shadow(12.dp, CircleShape, spotColor = JogpalPrimary)
-                            .clip(CircleShape)
-                            .background(
-                                Brush.linearGradient(
-                                    colors = listOf(
-                                        JogpalPrimary,
-                                        JogpalSecondary,
-                                        JogpalTertiary
-                                    )
-                                )
-                            )
-                            .border(2.dp, Color.Black, CircleShape)
-                            .clickable { onNavigate(item.route) },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.AutoAwesome,
-                            contentDescription = item.title,
-                            tint = Color.White,
-                            modifier = Modifier.size(26.dp)
-                        )
-                    }
-                } else {
-                    val animatedIconTint by animateColorAsState(
-                        targetValue = if (isSelected) JogpalPrimary else JogpalMutedTextLight,
-                        label = "IconTint"
+    Box(
+        modifier = modifier.fillMaxWidth(),
+        contentAlignment = Alignment.BottomEnd
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // Floating Sparkle Button on top right of nav bar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(end = 20.dp, bottom = 8.dp),
+                horizontalArrangement = Arrangement.End
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .shadow(8.dp, CircleShape, spotColor = neonColor)
+                        .clip(CircleShape)
+                        .background(Color(0xFF262626))
+                        .clickable {
+                            if (onSparkleClick != null) {
+                                onSparkleClick()
+                            } else {
+                                onNavigate("ghost_select")
+                            }
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.AutoAwesome,
+                        contentDescription = "AI Sparkle",
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
+            // Bottom Navigation Bar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(68.dp)
+                    .background(Color(0xFF0F0F0F))
+                    .padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.SpaceAround,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                items.forEach { item ->
+                    val isSelected = currentRoute == item.route
+
+                    val animatedColor by animateColorAsState(
+                        targetValue = if (isSelected) neonColor else Color(0xFF7A7A7A),
+                        label = "NavColor"
                     )
 
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center,
                         modifier = Modifier
-                            .clip(RoundedCornerShape(16.dp))
+                            .weight(1f)
+                            .fillMaxHeight()
                             .clickable { onNavigate(item.route) }
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                            .padding(vertical = 6.dp)
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            if (isSelected) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(32.dp)
-                                        .clip(CircleShape)
-                                        .background(JogpalPillBgLight)
-                                )
-                            }
-                            Icon(
-                                imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
-                                contentDescription = item.title,
-                                tint = animatedIconTint,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(2.dp))
+                        Icon(
+                            imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
+                            contentDescription = item.title,
+                            tint = animatedColor,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = item.title,
                             fontSize = 10.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = animatedIconTint
+                            fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
+                            color = animatedColor,
+                            letterSpacing = 0.5.sp
                         )
                     }
                 }
