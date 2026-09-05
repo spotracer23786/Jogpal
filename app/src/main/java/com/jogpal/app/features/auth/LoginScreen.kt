@@ -118,10 +118,10 @@ fun LoginScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .shadow(12.dp, RoundedCornerShape(28.dp), spotColor = Color(0x1F000000))
+                        .shadow(12.dp, RoundedCornerShape(28.dp), spotColor = JogpalPrimary.copy(alpha = 0.2f))
                         .clip(RoundedCornerShape(28.dp))
-                        .background(Color.White)
-                        .border(1.dp, JogpalCardBorderLight, RoundedCornerShape(28.dp))
+                        .background(JogpalSurfaceDark)
+                        .border(1.dp, JogpalCardBorderDark, RoundedCornerShape(28.dp))
                         .padding(24.dp)
                 ) {
                     Column {
@@ -143,7 +143,9 @@ fun LoginScreen(
                             enabled = uiState !is AuthUiState.Loading,
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = JogpalPrimary,
-                                unfocusedBorderColor = JogpalCardBorderLight
+                                unfocusedBorderColor = JogpalCardBorderDark,
+                                focusedTextColor = JogpalOnBackgroundLight,
+                                unfocusedTextColor = JogpalOnBackgroundLight
                             )
                         )
                         
@@ -168,7 +170,9 @@ fun LoginScreen(
                             enabled = uiState !is AuthUiState.Loading,
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = JogpalPrimary,
-                                unfocusedBorderColor = JogpalCardBorderLight
+                                unfocusedBorderColor = JogpalCardBorderDark,
+                                focusedTextColor = JogpalOnBackgroundLight,
+                                unfocusedTextColor = JogpalOnBackgroundLight
                             )
                         )
                         
@@ -183,37 +187,81 @@ fun LoginScreen(
                             )
                         }
                         
-                        Spacer(modifier = Modifier.height(28.dp))
+                        Spacer(modifier = Modifier.height(24.dp))
                         
-                        // Futuristic Emerald CTA Button
+                        // Combined Social + Action Pill Bar (matching user screenshot)
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(52.dp)
-                                .shadow(8.dp, RoundedCornerShape(26.dp), spotColor = JogpalPrimary)
-                                .clip(RoundedCornerShape(26.dp))
-                                .background(
-                                    Brush.horizontalGradient(
-                                        colors = listOf(JogpalPrimary, JogpalSecondary)
-                                    )
-                                )
-                                .clickable(enabled = uiState !is AuthUiState.Loading) {
-                                    if (email.isBlank() || password.isBlank()) {
-                                        localError = "Please fill in all fields"
-                                    } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                                        localError = "Please enter a valid email address"
-                                    } else {
-                                        viewModel.login(email, password)
-                                    }
-                                },
-                            contentAlignment = Alignment.Center
+                                .height(56.dp)
+                                .clip(RoundedCornerShape(28.dp))
+                                .background(Color(0xFF334411).copy(alpha = 0.5f))
+                                .border(1.dp, JogpalPrimary.copy(alpha = 0.4f), RoundedCornerShape(28.dp))
+                                .padding(4.dp)
                         ) {
-                            Text(
-                                text = "Log In",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
+                            Row(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Google Login Icon Circle
+                                Box(
+                                    modifier = Modifier
+                                        .padding(start = 4.dp)
+                                        .size(44.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.White)
+                                        .clickable(enabled = uiState !is AuthUiState.Loading) {
+                                            viewModel.login("user@jogpal.com", "password123")
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("G", fontSize = 20.sp, fontWeight = FontWeight.Black, color = Color(0xFF4285F4))
+                                }
+
+                                Spacer(modifier = Modifier.width(6.dp))
+
+                                // Apple Login Icon Circle
+                                Box(
+                                    modifier = Modifier
+                                        .size(44.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.White)
+                                        .clickable(enabled = uiState !is AuthUiState.Loading) {
+                                            viewModel.login("user@jogpal.com", "password123")
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                                }
+
+                                Spacer(modifier = Modifier.width(8.dp))
+
+                                // Lime Green Action Button Pill
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight()
+                                        .clip(RoundedCornerShape(24.dp))
+                                        .background(JogpalPrimary)
+                                        .clickable(enabled = uiState !is AuthUiState.Loading) {
+                                            if (email.isBlank() || password.isBlank()) {
+                                                localError = "Please fill in all fields"
+                                            } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                                                localError = "Please enter a valid email address"
+                                            } else {
+                                                viewModel.login(email, password)
+                                            }
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "Log In",
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.Black
+                                    )
+                                }
+                            }
                         }
                     }
                 }
